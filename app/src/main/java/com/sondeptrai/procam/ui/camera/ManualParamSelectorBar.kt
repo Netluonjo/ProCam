@@ -44,9 +44,9 @@ fun ManualParamSelectorBar(
     }
 
     val items = listOf(
-        ParamItemData(ManualParameter.AE, "AE", aeText),
+        ParamItemData(ManualParameter.AE, "ISO", isoText),
         ParamItemData(ManualParameter.SHUTTER, "SEC", secText),
-        ParamItemData(ManualParameter.ISO, "ISO", isoText),
+        ParamItemData(ManualParameter.ISO, "EV", aeText),
         ParamItemData(ManualParameter.FOCUS, "AF", afText),
         ParamItemData(ManualParameter.WB, "AWB", awbText),
         ParamItemData(ManualParameter.LOCK, "E/F", lockText)

@@ -121,80 +121,6 @@ fun CameraScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Halide Floating ISO Status Badge (when ISO is active)
-                if (uiState.activeManualParam == ManualParameter.ISO) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 10.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xCC0C0C0E))
-                            .border(1.dp, HalideGold.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
-                            .padding(horizontal = 14.dp, vertical = 6.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "HALIDE ISO  ",
-                                color = Color(0xFF8E8E93),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                letterSpacing = 1.sp
-                            )
-                            Text(
-                                text = if (uiState.isAutoIso) "AUTO (${uiState.currentIso})" else "${uiState.currentIso}",
-                                color = if (uiState.isAutoIso) Color(0xFF34C759) else HalideGold,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-                    }
-                }
-
-                // Halide Iconic Top-Right Quick EV Badge [ AUTO / +3.8 ]
-                val evStepFloat = uiState.hardwareInfo.aeCompensationStep.toFloat()
-                val currentEvFloat = uiState.currentEvIndex * evStepFloat
-                val formattedEv = when {
-                    currentEvFloat > 0f -> String.format("+%.1f", currentEvFloat)
-                    currentEvFloat < 0f -> String.format("%.1f", currentEvFloat)
-                    else -> "+0.0"
-                }
-                val isEvActive = uiState.currentEvIndex != 0
-
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 10.dp, end = 12.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isEvActive) Color(0xFFFFCC00) else Color(0x992C2C2E))
-                        .clickable {
-                            // Tap to instantly reset EV compensation to 0.0 (neutral Auto Exposure)
-                            viewModel.onEvChanged(0)
-                        }
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "AUTO",
-                            color = if (isEvActive) Color.Black else Color(0xFFEBEBF5),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.Monospace,
-                            letterSpacing = 0.8.sp
-                        )
-                        Text(
-                            text = formattedEv,
-                            color = if (isEvActive) Color.Black else Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
-                }
 
                 // Grid & Focus Target Overlay
                 ViewfinderOverlay(
@@ -284,11 +210,13 @@ fun CameraScreen(
                 onParamSelected = { param -> viewModel.onParamSelected(param) }
             )
 
-            // 4. Manual Control Dial: Halide 3D Rotary Drum Dial for ISO, or ProCam Ruler for other parameters
-            if (uiState.activeManualParam == ManualParameter.ISO) {
+            // 4. Manual Control Dial: Halide 3D Rotary Drum Dial for EV (+3 exposure) or ISO, or ProCam Ruler for other parameters
+            if (uiState.activeManualParam == ManualParameter.ISO || uiState.activeManualParam == ManualParameter.AE) {
                 HalideIsoDial(
                     state = uiState,
-                    onIsoChanged = { iso, isAuto -> viewModel.onIsoChanged(iso, isAuto) }
+                    onIsoChanged = { iso, isAuto -> viewModel.onIsoChanged(iso, isAuto) },
+                    onEvChanged = { ev -> viewModel.onEvChanged(ev) },
+                    initialModeIsEv = (uiState.activeManualParam == ManualParameter.ISO)
                 )
             } else {
                 ProCamRulerDial(

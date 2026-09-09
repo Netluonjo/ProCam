@@ -7,7 +7,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -32,6 +31,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sondeptrai.procam.core.camera.CameraUiState
 import kotlin.math.abs
+
+// Standard photographic EV stops matching Halide Mark II
+val HALIDE_EV_VALUES = listOf(
+    "AUTO" to 0,
+    "-3.0" to -9,
+    "-2.5" to -8,
+    "-2.0" to -6,
+    "-1.5" to -5,
+    "-1.0" to -3,
+    "-0.5" to -2,
+    "0.0" to 0,
+    "+0.5" to 2,
+    "+1.0" to 3,
+    "+1.5" to 5,
+    "+2.0" to 6,
+    "+2.5" to 8,
+    "+3.0" to 9,
+    "+3.5" to 11,
+    "+4.0" to 12
+)
 
 // Standard photographic ISO stops matching Halide Mark II
 val HALIDE_ISO_VALUES = listOf(
@@ -67,22 +86,32 @@ val HalideSurface = Color(0xFF18181C)
 fun HalideIsoDial(
     state: CameraUiState,
     onIsoChanged: (Int, Boolean) -> Unit,
+    onEvChanged: (Int) -> Unit = {},
+    initialModeIsEv: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    var isEvMode by remember(initialModeIsEv) { mutableStateOf(initialModeIsEv) }
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
     val itemSpacingDp = 46.dp
     val itemSpacingPx = with(density) { itemSpacingDp.toPx() }
 
-    val stepCount = HALIDE_ISO_VALUES.size
-    val currentIndex = if (state.isAutoIso) {
-        0
+    val valuesList = if (isEvMode) HALIDE_EV_VALUES else HALIDE_ISO_VALUES
+    val stepCount = valuesList.size
+
+    val currentIndex = if (isEvMode) {
+        val found = HALIDE_EV_VALUES.indexOfFirst { it.second == state.currentEvIndex }
+        if (found != -1) found else 7 // index 7 is "0.0"
     } else {
-        val found = HALIDE_ISO_VALUES.indexOfFirst { it.second == state.currentIso }
-        if (found != -1) found else 4 // default ~100
+        if (state.isAutoIso) {
+            0
+        } else {
+            val found = HALIDE_ISO_VALUES.indexOfFirst { it.second == state.currentIso }
+            if (found != -1) found else 4 // default ~100
+        }
     }.coerceIn(0, stepCount - 1)
 
-    var dragOffset by remember { mutableFloatStateOf(0f) }
+    var dragOffset by remember(isEvMode) { mutableFloatStateOf(0f) }
 
     Column(
         modifier = modifier
@@ -91,40 +120,84 @@ fun HalideIsoDial(
             .padding(top = 6.dp, bottom = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // --- 1. Halide Header: Value readout & AUTO Switch Chip ---
+        // --- 1. Halide Header: Mode tabs, active readout, and AUTO Switch Pill ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 2.dp),
+                .padding(horizontal = 16.dp, vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // ISO Label & Active Value
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "ISO ",
-                    color = Color(0xFF8E8E93),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    text = if (state.isAutoIso) "AUTO (${state.currentIso})" else "${state.currentIso}",
-                    color = if (state.isAutoIso) Color(0xFF34C759) else HalideGold,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
+            // Left: Mode Tabs [ EV (+3) ] & [ ISO ]
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // EV Tab
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isEvMode) HalideGold else HalideSurface)
+                        .clickable {
+                            isEvMode = true
+                            dragOffset = 0f
+                        }
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "EV (BÙ SÁNG)",
+                        color = if (isEvMode) Color.Black else Color(0xFF8E8E93),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+
+                // ISO Tab
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (!isEvMode) HalideGold else HalideSurface)
+                        .clickable {
+                            isEvMode = false
+                            dragOffset = 0f
+                        }
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "ISO",
+                        color = if (!isEvMode) Color.Black else Color(0xFF8E8E93),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
             }
 
-            // Halide Iconic AUTO Toggle Pill
+            // Center Readout
+            val activeText = if (isEvMode) {
+                val evFloat = state.currentEvIndex * state.hardwareInfo.aeCompensationStep.toFloat()
+                if (state.currentEvIndex == 0) "AUTO (0.0)" else if (evFloat > 0) String.format("+%.1f", evFloat) else String.format("%.1f", evFloat)
+            } else {
+                if (state.isAutoIso) "AUTO (${state.currentIso})" else "${state.currentIso}"
+            }
+
+            Text(
+                text = activeText,
+                color = HalideGold,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
+            )
+
+            // Right: AUTO Toggle Pill
+            val isAutoActive = if (isEvMode) state.currentEvIndex == 0 else state.isAutoIso
             val autoBg by animateColorAsState(
-                targetValue = if (state.isAutoIso) HalideGold else HalideSurface,
+                targetValue = if (isAutoActive) HalideGold else HalideSurface,
                 label = "autoBg"
             )
             val autoTextColor by animateColorAsState(
-                targetValue = if (state.isAutoIso) Color.Black else Color(0xFF8E8E93),
+                targetValue = if (isAutoActive) Color.Black else Color(0xFF8E8E93),
                 label = "autoText"
             )
 
@@ -132,18 +205,20 @@ fun HalideIsoDial(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
                     .background(autoBg)
-                    .border(1.dp, if (state.isAutoIso) HalideGold else Color(0xFF2C2C2E), RoundedCornerShape(12.dp))
+                    .border(1.dp, if (isAutoActive) HalideGold else Color(0xFF2C2C2E), RoundedCornerShape(12.dp))
                     .clickable {
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        if (state.isAutoIso) {
-                            // Switch to manual ISO 100
-                            onIsoChanged(100, false)
+                        if (isEvMode) {
+                            onEvChanged(0) // Reset EV to neutral 0.0
                         } else {
-                            // Switch to Auto ISO
-                            onIsoChanged(state.currentIso, true)
+                            if (state.isAutoIso) {
+                                onIsoChanged(100, false)
+                            } else {
+                                onIsoChanged(state.currentIso, true)
+                            }
                         }
                     }
-                    .padding(horizontal = 12.dp, vertical = 3.dp),
+                    .padding(horizontal = 10.dp, vertical = 3.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -163,7 +238,7 @@ fun HalideIsoDial(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp)
-                .pointerInput(stepCount, currentIndex) {
+                .pointerInput(isEvMode, stepCount, currentIndex) {
                     detectHorizontalDragGestures(
                         onDragStart = { dragOffset = 0f },
                         onHorizontalDrag = { change, dragAmount ->
@@ -174,11 +249,16 @@ fun HalideIsoDial(
                                 val newIdx = (currentIndex + stepsToMove).coerceIn(0, stepCount - 1)
                                 if (newIdx != currentIndex) {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    val (_, targetIso) = HALIDE_ISO_VALUES[newIdx]
-                                    if (targetIso == -1) {
-                                        onIsoChanged(state.currentIso, true)
+                                    if (isEvMode) {
+                                        val (_, targetEv) = HALIDE_EV_VALUES[newIdx]
+                                        onEvChanged(targetEv)
                                     } else {
-                                        onIsoChanged(targetIso, false)
+                                        val (_, targetIso) = HALIDE_ISO_VALUES[newIdx]
+                                        if (targetIso == -1) {
+                                            onIsoChanged(state.currentIso, true)
+                                        } else {
+                                            onIsoChanged(targetIso, false)
+                                        }
                                     }
                                     dragOffset += stepsToMove * itemSpacingPx
                                 }
@@ -201,7 +281,12 @@ fun HalideIsoDial(
                     if (idx in 0 until stepCount) {
                         val tickX = centerX + (offset * itemSpacingPx) + dragOffset
                         val isCenter = offset == 0 && abs(dragOffset) < itemSpacingPx / 2f
-                        val isMajorStop = idx == 0 || HALIDE_ISO_VALUES[idx].second in listOf(100, 200, 400, 800, 1600, 3200, 6400)
+                        val isMajorStop = if (isEvMode) {
+                            val target = HALIDE_EV_VALUES[idx].first
+                            target in listOf("AUTO", "-3.0", "-2.0", "-1.0", "0.0", "+1.0", "+2.0", "+3.0", "+4.0")
+                        } else {
+                            idx == 0 || HALIDE_ISO_VALUES[idx].second in listOf(100, 200, 400, 800, 1600, 3200, 6400)
+                        }
 
                         val tickH = if (isMajorStop) 12.dp.toPx() else 6.dp.toPx()
                         val tickColor = if (isCenter) HalideGold else if (isMajorStop) Color(0xFFC7C7CC) else Color(0xFF48484A)
@@ -217,7 +302,7 @@ fun HalideIsoDial(
                 }
             }
 
-            // Engraved ISO Numbers (3D Rolling Cylindrical perspective)
+            // Engraved Numbers (3D Rolling Cylindrical perspective)
             Row(
                 modifier = Modifier
                     .fillMaxSize()
@@ -229,7 +314,7 @@ fun HalideIsoDial(
                 for (offset in visibleIndices) {
                     val idx = currentIndex + offset
                     if (idx in 0 until stepCount) {
-                        val (label, targetIso) = HALIDE_ISO_VALUES[idx]
+                        val (label, _) = valuesList[idx]
                         val isCenter = offset == 0
 
                         // 3D perspective scale and alpha falloff
@@ -248,7 +333,11 @@ fun HalideIsoDial(
                         }
                         val fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Medium
                         val textColor = if (isCenter) {
-                            if (state.isAutoIso) Color(0xFF34C759) else HalideGold
+                            if (isEvMode) {
+                                if (state.currentEvIndex == 0) Color(0xFF34C759) else HalideGold
+                            } else {
+                                if (state.isAutoIso) Color(0xFF34C759) else HalideGold
+                            }
                         } else {
                             Color.White.copy(alpha = alpha)
                         }
@@ -258,11 +347,18 @@ fun HalideIsoDial(
                                 .width(itemSpacingDp)
                                 .clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    if (targetIso == -1) {
-                                        onIsoChanged(state.currentIso, true)
+                                    if (isEvMode) {
+                                        val (_, targetEv) = HALIDE_EV_VALUES[idx]
+                                        onEvChanged(targetEv)
                                     } else {
-                                        onIsoChanged(targetIso, false)
+                                        val (_, targetIso) = HALIDE_ISO_VALUES[idx]
+                                        if (targetIso == -1) {
+                                            onIsoChanged(state.currentIso, true)
+                                        } else {
+                                            onIsoChanged(targetIso, false)
+                                        }
                                     }
+                                    dragOffset = 0f
                                 },
                             contentAlignment = Alignment.Center
                         ) {
@@ -302,15 +398,20 @@ fun HalideIsoDial(
                     .clickable {
                         if (currentIndex > 0) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            val (_, iso) = HALIDE_ISO_VALUES[currentIndex - 1]
-                            onIsoChanged(if (iso == -1) state.currentIso else iso, iso == -1)
+                            if (isEvMode) {
+                                val (_, ev) = HALIDE_EV_VALUES[currentIndex - 1]
+                                onEvChanged(ev)
+                            } else {
+                                val (_, iso) = HALIDE_ISO_VALUES[currentIndex - 1]
+                                onIsoChanged(if (iso == -1) state.currentIso else iso, iso == -1)
+                            }
                         }
                     },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                    contentDescription = "Previous ISO",
+                    contentDescription = "Previous Stop",
                     tint = if (currentIndex > 0) Color(0xFF8E8E93) else Color(0xFF2C2C2E),
                     modifier = Modifier.size(20.dp)
                 )
@@ -325,15 +426,20 @@ fun HalideIsoDial(
                     .clickable {
                         if (currentIndex < stepCount - 1) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            val (_, iso) = HALIDE_ISO_VALUES[currentIndex + 1]
-                            onIsoChanged(if (iso == -1) state.currentIso else iso, iso == -1)
+                            if (isEvMode) {
+                                val (_, ev) = HALIDE_EV_VALUES[currentIndex + 1]
+                                onEvChanged(ev)
+                            } else {
+                                val (_, iso) = HALIDE_ISO_VALUES[currentIndex + 1]
+                                onIsoChanged(if (iso == -1) state.currentIso else iso, iso == -1)
+                            }
                         }
                     },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "Next ISO",
+                    contentDescription = "Next Stop",
                     tint = if (currentIndex < stepCount - 1) Color(0xFF8E8E93) else Color(0xFF2C2C2E),
                     modifier = Modifier.size(20.dp)
                 )
