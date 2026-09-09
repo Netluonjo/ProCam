@@ -52,6 +52,9 @@ fun CameraScreen(
     LaunchedEffect(uiState.isFrontCamera) {
         glViewRef?.updateFrontCamera(uiState.isFrontCamera)
     }
+    LaunchedEffect(uiState.currentKelvin, uiState.isAutoWb, glViewRef) {
+        glViewRef?.updateWhiteBalance(uiState.currentKelvin, uiState.isAutoWb)
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -249,6 +252,11 @@ fun CameraScreen(
                 HalideFocusDial(
                     state = uiState,
                     onFocusChanged = { dist, isAuto -> viewModel.onFocusChanged(dist, isAuto) }
+                )
+            } else if (uiState.activeManualParam == ManualParameter.WB) {
+                HalideWbDial(
+                    state = uiState,
+                    onKelvinChanged = { kelvin, isAuto -> viewModel.onKelvinChanged(kelvin, isAuto) }
                 )
             } else {
                 ProCamRulerDial(

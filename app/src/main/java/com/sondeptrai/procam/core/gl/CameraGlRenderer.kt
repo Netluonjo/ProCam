@@ -34,6 +34,7 @@ class CameraGlRenderer(
     private var uEnableZebraLoc: Int = 0
     private var uZebraThresholdLoc: Int = 0
     private var uTimeLoc: Int = 0
+    private var uWbTintLoc: Int = 0
 
     private val mvpMatrix = FloatArray(16)
     private val texMatrix = FloatArray(16)
@@ -52,6 +53,10 @@ class CameraGlRenderer(
     var isZebraEnabled = false
     var zebraThreshold = 0.95f
     var isFrontCamera = false
+
+    var wbTintR = 1.0f
+    var wbTintG = 1.0f
+    var wbTintB = 1.0f
 
     private var surfaceWidth = 1920
     private var surfaceHeight = 1080
@@ -105,6 +110,7 @@ class CameraGlRenderer(
         uEnableZebraLoc = GLES20.glGetUniformLocation(programId, "uEnableZebra")
         uZebraThresholdLoc = GLES20.glGetUniformLocation(programId, "uZebraThreshold")
         uTimeLoc = GLES20.glGetUniformLocation(programId, "uTime")
+        uWbTintLoc = GLES20.glGetUniformLocation(programId, "uWbTint")
 
         // Create OES external texture
         val textures = IntArray(1)
@@ -192,6 +198,9 @@ class CameraGlRenderer(
         val timeSec = (SystemClock.uptimeMillis() - startTime) / 1000.0f
         GLES20.glUniform1f(uTimeLoc, timeSec)
 
+        // Pass White Balance color temperature tint uniform
+        GLES20.glUniform3f(uWbTintLoc, wbTintR, wbTintG, wbTintB)
+
         // Active texture
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
@@ -201,6 +210,12 @@ class CameraGlRenderer(
 
         GLES20.glDisableVertexAttribArray(aPositionLoc)
         GLES20.glDisableVertexAttribArray(aTextureCoordLoc)
+    }
+
+    fun updateWbTint(r: Float, g: Float, b: Float) {
+        wbTintR = r
+        wbTintG = g
+        wbTintB = b
     }
 
     override fun onFrameAvailable(surfaceTexture: SurfaceTexture?) {

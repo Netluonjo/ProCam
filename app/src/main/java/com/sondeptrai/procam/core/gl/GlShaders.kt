@@ -30,6 +30,7 @@ object GlShaders {
         uniform int uEnableZebra;
         uniform float uZebraThreshold;
         uniform float uTime;
+        uniform vec3 uWbTint;
         
         float getLuminance(vec4 color) {
             return dot(color.rgb, vec3(0.299, 0.587, 0.114));
@@ -75,6 +76,7 @@ object GlShaders {
                 }
             }
             
+            finalColor = clamp(finalColor * uWbTint, 0.0, 1.0);
             gl_FragColor = vec4(finalColor, baseColor.a);
         }
     """

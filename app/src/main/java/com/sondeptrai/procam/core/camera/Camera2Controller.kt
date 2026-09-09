@@ -335,9 +335,28 @@ class Camera2Controller(
         if (state.isAutoWb) {
             builder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_AUTO)
         } else {
-            builder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_OFF)
-            val gains = kelvinToRggbGains(state.currentKelvin)
-            builder.set(CaptureRequest.COLOR_CORRECTION_GAINS, gains)
+            val availableAwb = cameraCharacteristics?.get(CameraCharacteristics.CONTROL_AWB_AVAILABLE_MODES)
+            val supportsAwbOff = availableAwb?.contains(CaptureRequest.CONTROL_AWB_MODE_OFF) == true
+
+            if (supportsAwbOff) {
+                builder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_OFF)
+                builder.set(CaptureRequest.COLOR_CORRECTION_MODE, CameraMetadata.COLOR_CORRECTION_MODE_TRANSFORM_MATRIX)
+                val gains = kelvinToRggbGains(state.currentKelvin)
+                builder.set(CaptureRequest.COLOR_CORRECTION_GAINS, gains)
+            } else {
+                // Fallback for hardware devices lacking CONTROL_AWB_MODE_OFF (e.g., Samsung Galaxy A23)
+                // Maps Kelvin to hardware AWB preset
+                val targetMode = when {
+                    state.currentKelvin <= 3200 -> CaptureRequest.CONTROL_AWB_MODE_INCANDESCENT
+                    state.currentKelvin <= 4500 -> CaptureRequest.CONTROL_AWB_MODE_FLUORESCENT
+                    state.currentKelvin <= 5800 -> CaptureRequest.CONTROL_AWB_MODE_DAYLIGHT
+                    state.currentKelvin <= 6800 -> CaptureRequest.CONTROL_AWB_MODE_CLOUDY_DAYLIGHT
+                    state.currentKelvin <= 7800 -> CaptureRequest.CONTROL_AWB_MODE_SHADE
+                    else -> CaptureRequest.CONTROL_AWB_MODE_TWILIGHT
+                }
+                val finalMode = if (availableAwb?.contains(targetMode) == true) targetMode else CaptureRequest.CONTROL_AWB_MODE_AUTO
+                builder.set(CaptureRequest.CONTROL_AWB_MODE, finalMode)
+            }
         }
 
         // 4. Flash Mode
@@ -374,22 +393,18 @@ class Camera2Controller(
      * Converts a Color Temperature in Kelvin (2000K - 10000K) to RGGB White Balance Gains
      */
     private fun kelvinToRggbGains(kelvin: Int): RggbChannelVector {
-        val temp = kelvin / 100.0
-        val r: Double
-        val b: Double
-        val g = 1.0
+        // Kelvin range 2000K to 10000K
+        // At 2000K (Candlelight/Warm light): Red gain lower (~1.1f), Blue gain higher (~3.0f)
+        // At 5500K (Daylight): Red gain balanced (~1.9f), Blue gain balanced (~2.1f)
+        // At 10000K (Deep Shade/Blue sky): Red gain higher (~3.0f), Blue gain lower (~1.1f)
+        val k = kelvin.coerceIn(2000, 10000)
+        val t = (k - 2000f) / 8000f // 0.0 at 2000K, ~0.4375 at 5500K, 1.0 at 10000K
 
-        if (temp <= 66) {
-            r = 2.0
-            b = if (temp <= 19) 0.0 else (138.5177312231 * Math.log(temp - 10) - 305.0447927307) / 255.0
-        } else {
-            r = (329.698727446 * Math.pow(temp - 60, -0.1332047592)) / 255.0
-            b = 2.0
-        }
+        val rGain = (1.1f + t * 1.9f).coerceIn(1.0f, 3.5f)
+        val bGain = (3.0f - t * 1.9f).coerceIn(1.0f, 3.5f)
+        val gGain = 1.0f
 
-        val rGain = min(max(r.toFloat(), 1.0f), 3.5f)
-        val bGain = min(max(b.toFloat(), 1.0f), 3.5f)
-        return RggbChannelVector(rGain, g.toFloat(), g.toFloat(), bGain)
+        return RggbChannelVector(rGain, gGain, gGain, bGain)
     }
 
     // Public setter methods triggered by UI
