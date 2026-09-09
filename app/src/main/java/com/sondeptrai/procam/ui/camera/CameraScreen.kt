@@ -2,14 +2,24 @@ package com.sondeptrai.procam.ui.camera
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.sondeptrai.procam.core.camera.ShootingMode
 import com.sondeptrai.procam.core.gl.CameraGlView
 import com.sondeptrai.procam.ui.theme.DslrBlack
+import com.sondeptrai.procam.ui.theme.ProCamRed
 import com.sondeptrai.procam.ui.viewmodel.CameraViewModel
 
 @Composable
@@ -21,6 +31,7 @@ fun CameraScreen(
     val levelState by viewModel.levelState.collectAsState()
     val isSteady by viewModel.isSteady.collectAsState()
     val histogramData by viewModel.histogramData.collectAsState()
+    val context = LocalContext.current
 
     var glViewRef by remember { mutableStateOf<CameraGlView?>(null) }
 
@@ -37,36 +48,37 @@ fun CameraScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = DslrBlack
+        containerColor = Color.Black
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(DslrBlack)
+                .background(Color.Black)
         ) {
-            // 1. ProCam Top Control Bar
+            // 1. ProCam Top Control Bar (Status Bar + Sub-header Strip)
             CameraTopBar(
                 state = uiState,
                 onFlashToggle = { viewModel.onFlashToggle() },
                 onRawToggle = { viewModel.onRawToggle() },
-                onAspectRatioToggle = { viewModel.onAspectRatioToggle() },
-                onPeakingToggle = { viewModel.onPeakingToggle() },
-                onZebraToggle = { viewModel.onZebraToggle() },
-                onGridToggle = { viewModel.onGridToggle() },
-                onTiltMeterToggle = { viewModel.onTiltMeterToggle() }
+                onTiffToggle = { viewModel.onTiffToggle() },
+                onSbrtToggle = { viewModel.onSbrtToggle() },
+                onAebToggle = { viewModel.onAebToggle() },
+                onSetToggle = { viewModel.onSetMenuToggle() },
+                onFlipCamera = { viewModel.onSwitchCamera() }
             )
 
-            // 2. Viewfinder Section with GL Surface and Overlays
+            // 2. Viewfinder Section with GL Surface and ProCam Overlays
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    .background(Color.Black)
             ) {
-                // Real-time OpenGL ES Preview with Shader filters
+                // Real-time OpenGL ES Preview with Shader filters & Mirroring
                 AndroidView(
-                    factory = { context ->
-                        CameraGlView(context) { surface ->
+                    factory = { ctx ->
+                        CameraGlView(ctx) { surface ->
                             viewModel.onSurfaceCreated(surface)
                         }.also {
                             glViewRef = it
@@ -78,10 +90,10 @@ fun CameraScreen(
                 // Grid & Focus Target Overlay
                 ViewfinderOverlay(
                     gridType = uiState.gridType,
-                    onFocusPointSelected = { /* Manual AF target point */ }
+                    onFocusPointSelected = { /* Tap-to-focus point */ }
                 )
 
-                // Tiltmeter / Artificial Horizon Level
+                // Tiltmeter / Artificial Horizon Level (Center of Viewfinder)
                 if (uiState.isTiltMeterEnabled) {
                     TiltMeterWidget(
                         levelOrientation = levelState,
@@ -89,13 +101,50 @@ fun CameraScreen(
                     )
                 }
 
-                // Live Luminance Histogram Overlay (Top Right)
+                // Stereo Audio VU Meter (Left Edge in Video Mode)
+                if (uiState.selectedMode == ShootingMode.VIDEO) {
+                    AudioVuMeterWidget(
+                        decibelLevel = uiState.audioDecibelLevel,
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 12.dp)
+                    )
+
+                    // Video Recording Indicator Badge (Bottom Left)
+                    if (uiState.isRecordingVideo) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 14.dp, bottom = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(ProCamRed)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            val minutes = uiState.videoRecordingSeconds / 60
+                            val seconds = uiState.videoRecordingSeconds % 60
+                            Text(
+                                text = String.format("REC %02d:%02d", minutes, seconds),
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+                }
+
+                // Live Luminance Histogram Overlay (Iconic Bottom-Right placement in ProCam)
                 if (uiState.isHistogramEnabled) {
                     HistogramWidget(
                         histogramData = histogramData,
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp)
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 12.dp, bottom = 12.dp)
                     )
                 }
 
@@ -104,41 +153,66 @@ fun CameraScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(androidx.compose.ui.graphics.Color.White)
+                            .background(Color.White)
                     )
                 }
             }
 
-            // 3. Mechanical Slider Wheel (ISO / Shutter / Focus / WB / EV)
-            ManualControlDial(
-                state = uiState,
-                onIsoChanged = { iso, isAuto -> viewModel.onIsoChanged(iso, isAuto) },
-                onShutterChanged = { nanos, isAuto -> viewModel.onShutterChanged(nanos, isAuto) },
-                onFocusChanged = { dist, isAuto -> viewModel.onFocusChanged(dist, isAuto) },
-                onKelvinChanged = { k, isAuto -> viewModel.onKelvinChanged(k, isAuto) },
-                onEvChanged = { ev -> viewModel.onEvChanged(ev) }
-            )
-
-            // 4. Quick Parameter Switch Bar [ISO] [SEC] [FOCUS] [WB] [EV]
+            // 3. ProCam 6-Column Parameter Strip [ AE ] [ SEC ] [ ISO ] [ AF ] [ AWB ] [ E/F ]
             ManualParamSelectorBar(
                 state = uiState,
                 onParamSelected = { param -> viewModel.onParamSelected(param) }
             )
 
-            // 5. Shooting Mode Selector (PHOTO, MANUAL, SLOW SHUTTER, BURST, VIDEO)
-            ModeSelector(
-                selectedMode = uiState.selectedMode,
-                onModeSelected = { mode -> viewModel.onModeSelected(mode) }
+            // 4. ProCam Mechanical Graduated Ruler Dial with Fixed Red Center Needle
+            ProCamRulerDial(
+                state = uiState,
+                onIsoChanged = { iso, isAuto -> viewModel.onIsoChanged(iso, isAuto) },
+                onShutterChanged = { nanos, isAuto -> viewModel.onShutterChanged(nanos, isAuto) },
+                onFocusChanged = { dist, isAuto -> viewModel.onFocusChanged(dist, isAuto) },
+                onKelvinChanged = { k, isAuto -> viewModel.onKelvinChanged(k, isAuto) },
+                onEvChanged = { ev -> viewModel.onEvChanged(ev) },
+                onToggleAeAfLock = { viewModel.onAeAfLockToggle() },
+                onToggleWbLock = { viewModel.onWbLockToggle() }
             )
 
-            // 6. Tactical Shutter & Gallery Controls
-            val context = androidx.compose.ui.platform.LocalContext.current
+            // 5. Expandable Shooting Mode Selector Drawer (Photo, Video, Burst, Slow Shutter, Portrait)
+            ModeSelector(
+                selectedMode = uiState.selectedMode,
+                isExpanded = uiState.isModeDrawerExpanded,
+                onModeSelected = { mode ->
+                    viewModel.onModeSelected(mode)
+                    viewModel.onModeDrawerToggle() // Collapse drawer after selection
+                }
+            )
+
+            // 6. Iconic ProCam Bottom Shutter & Controls Row
             ShutterControlSection(
                 mode = uiState.selectedMode,
                 isRecording = uiState.isRecordingVideo,
+                isFrontCamera = uiState.isFrontCamera,
+                timerSeconds = uiState.timerSeconds,
+                isDrawerExpanded = uiState.isModeDrawerExpanded,
+                lastCapturedUri = uiState.lastCapturedUri,
                 onShutterClick = { viewModel.onShutterPressed() },
                 onGalleryClick = { viewModel.onOpenGallery(context) },
-                onFlipCameraClick = { viewModel.onSwitchCamera() }
+                onFlipCameraClick = { viewModel.onSwitchCamera() },
+                onModeDrawerToggle = { viewModel.onModeDrawerToggle() },
+                onTimerCycle = { viewModel.onTimerCycle() }
+            )
+        }
+
+        // 7. ProCam Settings Modal Dialog (When tapping SET)
+        if (uiState.isSetMenuOpen) {
+            ProCamSettingsModal(
+                state = uiState,
+                onDismiss = { viewModel.onSetMenuToggle() },
+                onPeakingToggle = { viewModel.onPeakingToggle() },
+                onZebraToggle = { viewModel.onZebraToggle() },
+                onGridToggle = { viewModel.onGridToggle() },
+                onTiltMeterToggle = { viewModel.onTiltMeterToggle() },
+                onHistogramToggle = { viewModel.onHistogramToggle() },
+                onAspectRatioToggle = { viewModel.onAspectRatioToggle() }
             )
         }
     }

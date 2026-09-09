@@ -22,11 +22,16 @@ enum class SlowShutterMode(val title: String) {
 
 enum class ManualParameter(val label: String) {
     NONE("AUTO"),
-    ISO("ISO"),
+    AE("AE"),
     SHUTTER("SEC"),
-    FOCUS("FOCUS"),
-    WB("WB"),
-    EV("EV")
+    ISO("ISO"),
+    FOCUS("AF"),
+    WB("AWB"),
+    LOCK("E/F");
+
+    companion object {
+        val EV get() = AE
+    }
 }
 
 enum class PeakingColor(val hexColor: Int, val displayName: String) {
@@ -131,6 +136,19 @@ data class CameraUiState(
     val isShutterFlashing: Boolean = false,
     val lastCapturedUri: Uri? = null,
     
+    // ProCam Authentic Controls
+    val isAeAfLocked: Boolean = false,
+    val isWbLocked: Boolean = false,
+    val timerSeconds: Int = 0, // 0: Off, 3: 3s, 10: 10s
+    val isModeDrawerExpanded: Boolean = false,
+    val isSetMenuOpen: Boolean = false,
+    val isTiffEnabled: Boolean = false,
+    val isSbrtEnabled: Boolean = false,
+    val isAebEnabled: Boolean = false,
+    val batteryPercent: Int = 85,
+    val freeStorageGb: String = "127.8",
+    val sensorMegapixels: String = "12MP",
+
     // Hardware info
     val hardwareInfo: CameraHardwareInfo = CameraHardwareInfo()
 )

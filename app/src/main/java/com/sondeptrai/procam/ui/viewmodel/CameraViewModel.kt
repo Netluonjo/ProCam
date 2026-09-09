@@ -93,12 +93,43 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun onFlashToggle() {
-        val nextFlash = (uiState.value.flashMode + 1) % 4
-        // Handled via controller
+        cameraController.toggleFlash()
     }
 
     fun onRawToggle() {
         cameraController.toggleRaw()
+    }
+
+    fun onTiffToggle() {
+        cameraController.toggleTiff()
+    }
+
+    fun onSbrtToggle() {
+        cameraController.toggleSbrt()
+    }
+
+    fun onAebToggle() {
+        cameraController.toggleAeb()
+    }
+
+    fun onSetMenuToggle() {
+        cameraController.toggleSetMenu()
+    }
+
+    fun onModeDrawerToggle() {
+        cameraController.toggleModeDrawer()
+    }
+
+    fun onTimerCycle() {
+        cameraController.cycleTimer()
+    }
+
+    fun onAeAfLockToggle() {
+        cameraController.toggleAeAfLock()
+    }
+
+    fun onWbLockToggle() {
+        cameraController.toggleWbLock()
     }
 
     fun onPeakingToggle() {
@@ -121,11 +152,15 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun onAspectRatioToggle() {
-        // Toggle 4:3 -> 16:9 -> 1:1
+        cameraController.cycleAspectRatio()
     }
 
     fun onTiltMeterToggle() {
-        // Toggle tiltmeter visibility
+        cameraController.toggleTiltMeter()
+    }
+
+    fun onHistogramToggle() {
+        cameraController.toggleHistogram()
     }
 
     override fun onCleared() {

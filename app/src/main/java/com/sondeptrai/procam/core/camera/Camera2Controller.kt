@@ -419,6 +419,69 @@ class Camera2Controller(
         }
     }
 
+    fun toggleFlash() {
+        val next = (_uiState.value.flashMode + 1) % 4
+        _uiState.value = _uiState.value.copy(flashMode = next)
+        previewRequestBuilder?.let {
+            applyParametersToBuilder(it)
+            sendRepeatingRequest()
+        }
+    }
+
+    fun toggleTiff() {
+        _uiState.value = _uiState.value.copy(isTiffEnabled = !_uiState.value.isTiffEnabled)
+    }
+
+    fun toggleSbrt() {
+        _uiState.value = _uiState.value.copy(isSbrtEnabled = !_uiState.value.isSbrtEnabled)
+    }
+
+    fun toggleAeb() {
+        _uiState.value = _uiState.value.copy(isAebEnabled = !_uiState.value.isAebEnabled)
+    }
+
+    fun toggleSetMenu() {
+        _uiState.value = _uiState.value.copy(isSetMenuOpen = !_uiState.value.isSetMenuOpen)
+    }
+
+    fun toggleModeDrawer() {
+        _uiState.value = _uiState.value.copy(isModeDrawerExpanded = !_uiState.value.isModeDrawerExpanded)
+    }
+
+    fun cycleTimer() {
+        val next = when (_uiState.value.timerSeconds) {
+            0 -> 3
+            3 -> 10
+            else -> 0
+        }
+        _uiState.value = _uiState.value.copy(timerSeconds = next)
+    }
+
+    fun toggleAeAfLock() {
+        _uiState.value = _uiState.value.copy(isAeAfLocked = !_uiState.value.isAeAfLocked)
+    }
+
+    fun toggleWbLock() {
+        _uiState.value = _uiState.value.copy(isWbLocked = !_uiState.value.isWbLocked)
+    }
+
+    fun toggleHistogram() {
+        _uiState.value = _uiState.value.copy(isHistogramEnabled = !_uiState.value.isHistogramEnabled)
+    }
+
+    fun toggleTiltMeter() {
+        _uiState.value = _uiState.value.copy(isTiltMeterEnabled = !_uiState.value.isTiltMeterEnabled)
+    }
+
+    fun cycleAspectRatio() {
+        val next = when (_uiState.value.aspectRatio) {
+            AspectRatio.RATIO_4_3 -> AspectRatio.RATIO_16_9
+            AspectRatio.RATIO_16_9 -> AspectRatio.RATIO_1_1
+            AspectRatio.RATIO_1_1 -> AspectRatio.RATIO_4_3
+        }
+        _uiState.value = _uiState.value.copy(aspectRatio = next)
+    }
+
     fun setGridType(gridType: GridType) {
         _uiState.value = _uiState.value.copy(gridType = gridType)
     }

@@ -16,8 +16,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.unit.dp
 import com.sondeptrai.procam.core.gl.HistogramData
-import com.sondeptrai.procam.ui.theme.DslrBorder
-import com.sondeptrai.procam.ui.theme.ProCamAmber
 
 @Composable
 fun HistogramWidget(
@@ -26,11 +24,11 @@ fun HistogramWidget(
 ) {
     Box(
         modifier = modifier
-            .width(110.dp)
-            .height(55.dp)
+            .width(88.dp)
+            .height(44.dp)
             .clip(RoundedCornerShape(6.dp))
-            .background(Color(0x99141418))
-            .border(1.dp, DslrBorder, RoundedCornerShape(6.dp))
+            .background(Color(0x99000000))
+            .border(0.5.dp, Color(0x66FFFFFF), RoundedCornerShape(6.dp))
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val width = size.width
@@ -53,8 +51,8 @@ fun HistogramWidget(
                 path = path,
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        ProCamAmber.copy(alpha = 0.75f),
-                        ProCamAmber.copy(alpha = 0.15f)
+                        Color.White.copy(alpha = 0.85f),
+                        Color.White.copy(alpha = 0.2f)
                     )
                 )
             )

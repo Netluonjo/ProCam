@@ -78,7 +78,7 @@ fun ManualControlDial(
                     info.formatEv(state.currentEvIndex),
                     false
                 )
-                ManualParameter.NONE -> Triple("", "", false)
+                else -> Triple("", "", false)
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -198,7 +198,7 @@ fun ManualControlDial(
                     )
                 )
             }
-            ManualParameter.NONE -> {}
+            else -> {}
         }
     }
 }
