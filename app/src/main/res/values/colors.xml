@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="dslr_bg">#FF0F0F12</color>
+    <color name="dslr_surface">#FF1E1E24</color>
+    <color name="procam_amber">#FFFFB300</color>
+    <color name="peaking_green">#FF00E676</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

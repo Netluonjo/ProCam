@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">ProCam</string>
+    <string name="camera_permission_required">ProCam cần quyền truy cập máy ảnh và microphone để hoạt động.</string>
+    <string name="grant_permission">Cấp quyền</string>
+    <string name="mode_photo">ẢNH</string>
+    <string name="mode_manual">THỦ CÔNG</string>
+    <string name="mode_slow_shutter">PHƠI SÁNG</string>
+    <string name="mode_burst">CHỤP LIÊN TỤC</string>
+    <string name="mode_anti_shake">CHỐNG RUNG</string>
+    <string name="mode_video">VIDEO</string>
+    <string name="mode_portrait">CHÂN DUNG</string>
+    <string name="iso">ISO</string>
+    <string name="shutter">SEC</string>
+    <string name="focus">FOCUS</string>
+    <string name="wb">WB</string>
+    <string name="ev">EV</string>
+    <string name="auto">AUTO</string>
+    <string name="raw">RAW (DNG)</string>
+    <string name="jpg">JPEG</string>
+</resources>
