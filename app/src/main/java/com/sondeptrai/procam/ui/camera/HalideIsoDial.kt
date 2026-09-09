@@ -32,9 +32,10 @@ import androidx.compose.ui.unit.sp
 import com.sondeptrai.procam.core.camera.CameraUiState
 import kotlin.math.abs
 
-// Standard photographic EV stops matching Halide Mark II
+// Standard photographic EV stops matching Halide Mark II (step = 1/3 EV)
 val HALIDE_EV_VALUES = listOf(
-    "AUTO" to 0,
+    "-4.0" to -12,
+    "-3.5" to -11,
     "-3.0" to -9,
     "-2.5" to -8,
     "-2.0" to -6,
@@ -93,7 +94,7 @@ fun HalideIsoDial(
     var isEvMode by remember(initialModeIsEv) { mutableStateOf(initialModeIsEv) }
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
-    val itemSpacingDp = 46.dp
+    val itemSpacingDp = 44.dp
     val itemSpacingPx = with(density) { itemSpacingDp.toPx() }
 
     val valuesList = if (isEvMode) HALIDE_EV_VALUES else HALIDE_ISO_VALUES
@@ -101,7 +102,7 @@ fun HalideIsoDial(
 
     val currentIndex = if (isEvMode) {
         val found = HALIDE_EV_VALUES.indexOfFirst { it.second == state.currentEvIndex }
-        if (found != -1) found else 7 // index 7 is "0.0"
+        if (found != -1) found else 8 // index 8 is "0.0"
     } else {
         if (state.isAutoIso) {
             0
@@ -111,37 +112,41 @@ fun HalideIsoDial(
         }
     }.coerceIn(0, stepCount - 1)
 
-    var dragOffset by remember(isEvMode) { mutableFloatStateOf(0f) }
+    // Remember updated states for drag gesture so coroutine doesn't restart when index changes
+    val currentValuesList by rememberUpdatedState(valuesList)
+    val currentStepCount by rememberUpdatedState(stepCount)
+    val currentIdx by rememberUpdatedState(currentIndex)
+    val currentOnEvChanged by rememberUpdatedState(onEvChanged)
+    val currentOnIsoChanged by rememberUpdatedState(onIsoChanged)
+    val currentIsEvMode by rememberUpdatedState(isEvMode)
+    val currentIsoVal by rememberUpdatedState(state.currentIso)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(HalideDark)
-            .padding(top = 6.dp, bottom = 4.dp),
+            .padding(top = 4.dp, bottom = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // --- 1. Halide Header: Mode tabs, active readout, and AUTO Switch Pill ---
+        // --- 1. Halide Header: Mode tabs, Quick Presets (+3.0), and AUTO Switch Pill ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 2.dp),
+                .padding(horizontal = 14.dp, vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left: Mode Tabs [ EV (+3) ] & [ ISO ]
+            // Left: Mode Tabs [ EV ] & [ ISO ]
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // EV Tab
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .background(if (isEvMode) HalideGold else HalideSurface)
-                        .clickable {
-                            isEvMode = true
-                            dragOffset = 0f
-                        }
+                        .clickable { isEvMode = true }
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
@@ -158,10 +163,7 @@ fun HalideIsoDial(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .background(if (!isEvMode) HalideGold else HalideSurface)
-                        .clickable {
-                            isEvMode = false
-                            dragOffset = 0f
-                        }
+                        .clickable { isEvMode = false }
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
@@ -174,23 +176,46 @@ fun HalideIsoDial(
                 }
             }
 
-            // Center Readout
-            val activeText = if (isEvMode) {
-                val evFloat = state.currentEvIndex * state.hardwareInfo.aeCompensationStep.toFloat()
-                if (state.currentEvIndex == 0) "AUTO (0.0)" else if (evFloat > 0) String.format("+%.1f", evFloat) else String.format("%.1f", evFloat)
+            // Center Quick Presets (when in EV mode: tap to instantly jump to +1, +2, +3.0)
+            if (isEvMode) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf("0.0" to 0, "+1.0" to 3, "+2.0" to 6, "+3.0" to 9).forEach { (presetLabel, presetIndex) ->
+                        val isPresetActive = state.currentEvIndex == presetIndex
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isPresetActive) HalideGold else Color(0xFF242428))
+                                .clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onEvChanged(presetIndex)
+                                }
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = presetLabel,
+                                color = if (isPresetActive) Color.Black else if (presetIndex == 9) HalideGold else Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = if (isPresetActive || presetIndex == 9) FontWeight.ExtraBold else FontWeight.Medium,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+                }
             } else {
-                if (state.isAutoIso) "AUTO (${state.currentIso})" else "${state.currentIso}"
+                // ISO Readout
+                Text(
+                    text = if (state.isAutoIso) "AUTO (${state.currentIso})" else "${state.currentIso}",
+                    color = HalideGold,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
             }
 
-            Text(
-                text = activeText,
-                color = HalideGold,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace
-            )
-
-            // Right: AUTO Toggle Pill
+            // Right: AUTO Reset Pill
             val isAutoActive = if (isEvMode) state.currentEvIndex == 0 else state.isAutoIso
             val autoBg by animateColorAsState(
                 targetValue = if (isAutoActive) HalideGold else HalideSurface,
@@ -218,13 +243,13 @@ fun HalideIsoDial(
                             }
                         }
                     }
-                    .padding(horizontal = 10.dp, vertical = 3.dp),
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "AUTO",
                     color = autoTextColor,
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
                 )
@@ -234,33 +259,30 @@ fun HalideIsoDial(
         Spacer(modifier = Modifier.height(2.dp))
 
         // --- 2. Halide 3D Rotary Drum Dial ---
+        var dragAccumulator by remember { mutableFloatStateOf(0f) }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp)
-                .pointerInput(isEvMode, stepCount, currentIndex) {
+                .pointerInput(isEvMode) {
                     detectHorizontalDragGestures(
-                        onDragStart = { dragOffset = 0f },
+                        onDragStart = { dragAccumulator = 0f },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
-                            dragOffset += dragAmount
-                            val stepsToMove = (-dragOffset / itemSpacingPx).toInt()
-                            if (stepsToMove != 0) {
-                                val newIdx = (currentIndex + stepsToMove).coerceIn(0, stepCount - 1)
-                                if (newIdx != currentIndex) {
+                            dragAccumulator += dragAmount
+                            val stepDelta = (-dragAccumulator / itemSpacingPx).toInt()
+                            if (stepDelta != 0) {
+                                val targetIdx = (currentIdx + stepDelta).coerceIn(0, currentStepCount - 1)
+                                dragAccumulator += stepDelta * itemSpacingPx
+                                if (targetIdx != currentIdx) {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    if (isEvMode) {
-                                        val (_, targetEv) = HALIDE_EV_VALUES[newIdx]
-                                        onEvChanged(targetEv)
+                                    if (currentIsEvMode) {
+                                        currentOnEvChanged(HALIDE_EV_VALUES[targetIdx].second)
                                     } else {
-                                        val (_, targetIso) = HALIDE_ISO_VALUES[newIdx]
-                                        if (targetIso == -1) {
-                                            onIsoChanged(state.currentIso, true)
-                                        } else {
-                                            onIsoChanged(targetIso, false)
-                                        }
+                                        val targetIso = HALIDE_ISO_VALUES[targetIdx].second
+                                        currentOnIsoChanged(if (targetIso == -1) currentIsoVal else targetIso, targetIso == -1)
                                     }
-                                    dragOffset += stepsToMove * itemSpacingPx
                                 }
                             }
                         }
@@ -279,11 +301,11 @@ fun HalideIsoDial(
                 for (offset in -visibleCount..visibleCount) {
                     val idx = currentIndex + offset
                     if (idx in 0 until stepCount) {
-                        val tickX = centerX + (offset * itemSpacingPx) + dragOffset
-                        val isCenter = offset == 0 && abs(dragOffset) < itemSpacingPx / 2f
+                        val tickX = centerX + (offset * itemSpacingPx)
+                        val isCenter = offset == 0
                         val isMajorStop = if (isEvMode) {
                             val target = HALIDE_EV_VALUES[idx].first
-                            target in listOf("AUTO", "-3.0", "-2.0", "-1.0", "0.0", "+1.0", "+2.0", "+3.0", "+4.0")
+                            target in listOf("-4.0", "-3.0", "-2.0", "-1.0", "0.0", "+1.0", "+2.0", "+3.0", "+4.0")
                         } else {
                             idx == 0 || HALIDE_ISO_VALUES[idx].second in listOf(100, 200, 400, 800, 1600, 3200, 6400)
                         }
@@ -358,7 +380,6 @@ fun HalideIsoDial(
                                             onIsoChanged(targetIso, false)
                                         }
                                     }
-                                    dragOffset = 0f
                                 },
                             contentAlignment = Alignment.Center
                         ) {
@@ -417,7 +438,7 @@ fun HalideIsoDial(
                 )
             }
 
-            // Right Nudge Arrow Button (›)
+            // Right Nudge Arrow Button (›) - click to step towards +3.0
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)

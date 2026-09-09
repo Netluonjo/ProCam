@@ -413,8 +413,10 @@ class Camera2Controller(
     }
 
     fun setEv(evIndex: Int) {
+        val range = _uiState.value.hardwareInfo.aeCompensationRange
+        val clamped = evIndex.coerceIn(range.lower, range.upper)
         _uiState.value = _uiState.value.copy(
-            currentEvIndex = evIndex,
+            currentEvIndex = clamped,
             isAutoIso = true,
             isAutoShutter = true
         )
