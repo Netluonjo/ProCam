@@ -2,6 +2,7 @@ package com.sondeptrai.procam.ui.camera
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -78,7 +79,7 @@ fun CameraScreen(
                     .fillMaxWidth()
                     .weight(1f)
                     .background(Color.Black)
-                    .pointerInput(uiState.hardwareInfo.zoomRatioRange, uiState.activeManualParam, uiState.currentIso, uiState.isAutoIso) {
+                    .pointerInput(uiState.hardwareInfo.zoomRatioRange, uiState.activeManualParam, uiState.currentIso, uiState.isAutoIso, uiState.currentEvIndex, uiState.hardwareInfo.aeCompensationRange) {
                         detectTransformGestures { _, pan, zoom, _ ->
                             if (zoom != 1f) {
                                 val newZoom = (uiState.currentZoomRatio * zoom).coerceIn(
@@ -87,7 +88,7 @@ fun CameraScreen(
                                 )
                                 viewModel.onZoomChanged(newZoom)
                             } else if (uiState.activeManualParam == ManualParameter.ISO && kotlin.math.abs(pan.x) > 20f) {
-                                // Halide signature swipe-to-adjust ISO gesture
+                                // Halide signature swipe-to-adjust ISO gesture (horizontal swipe)
                                 val currentIndex = if (uiState.isAutoIso) 0 else {
                                     val idx = HALIDE_ISO_VALUES.indexOfFirst { it.second == uiState.currentIso }
                                     if (idx != -1) idx else 4
@@ -96,6 +97,14 @@ fun CameraScreen(
                                 val nextIdx = (currentIndex + delta).coerceIn(0, HALIDE_ISO_VALUES.size - 1)
                                 val (_, targetIso) = HALIDE_ISO_VALUES[nextIdx]
                                 viewModel.onIsoChanged(if (targetIso == -1) 100 else targetIso, targetIso == -1)
+                            } else if (kotlin.math.abs(pan.y) > 12f) {
+                                // Halide signature vertical swipe-to-adjust EV (Exposure Value)
+                                val stepRange = uiState.hardwareInfo.aeCompensationRange
+                                val delta = if (pan.y < 0) 1 else -1 // Dragging up increases EV (+), dragging down decreases EV (-)
+                                val nextEv = (uiState.currentEvIndex + delta).coerceIn(stepRange.lower, stepRange.upper)
+                                if (nextEv != uiState.currentEvIndex) {
+                                    viewModel.onEvChanged(nextEv)
+                                }
                             }
                         }
                     }
@@ -140,6 +149,50 @@ fun CameraScreen(
                                 fontFamily = FontFamily.Monospace
                             )
                         }
+                    }
+                }
+
+                // Halide Iconic Top-Right Quick EV Badge [ AUTO / +3.8 ]
+                val evStepFloat = uiState.hardwareInfo.aeCompensationStep.toFloat()
+                val currentEvFloat = uiState.currentEvIndex * evStepFloat
+                val formattedEv = when {
+                    currentEvFloat > 0f -> String.format("+%.1f", currentEvFloat)
+                    currentEvFloat < 0f -> String.format("%.1f", currentEvFloat)
+                    else -> "+0.0"
+                }
+                val isEvActive = uiState.currentEvIndex != 0
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 10.dp, end = 12.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isEvActive) Color(0xFFFFCC00) else Color(0x992C2C2E))
+                        .clickable {
+                            // Tap to instantly reset EV compensation to 0.0 (neutral Auto Exposure)
+                            viewModel.onEvChanged(0)
+                        }
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "AUTO",
+                            color = if (isEvActive) Color.Black else Color(0xFFEBEBF5),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace,
+                            letterSpacing = 0.8.sp
+                        )
+                        Text(
+                            text = formattedEv,
+                            color = if (isEvActive) Color.Black else Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace
+                        )
                     }
                 }
 

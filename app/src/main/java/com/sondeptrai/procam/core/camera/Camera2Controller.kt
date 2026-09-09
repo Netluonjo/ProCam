@@ -413,7 +413,11 @@ class Camera2Controller(
     }
 
     fun setEv(evIndex: Int) {
-        _uiState.value = _uiState.value.copy(currentEvIndex = evIndex)
+        _uiState.value = _uiState.value.copy(
+            currentEvIndex = evIndex,
+            isAutoIso = true,
+            isAutoShutter = true
+        )
         previewRequestBuilder?.let {
             applyParametersToBuilder(it)
             sendRepeatingRequest()
