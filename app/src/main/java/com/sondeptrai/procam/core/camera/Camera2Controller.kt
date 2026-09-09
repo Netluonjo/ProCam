@@ -175,10 +175,12 @@ class Camera2Controller(
         val chars = cameraCharacteristics ?: return
         val map = chars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) ?: return
 
-        // 1. Find best supported JPEG size from hardware sensor
         val jpegSizes = map.getOutputSizes(ImageFormat.JPEG) ?: emptyArray()
         val bestJpegSize = jpegSizes.maxByOrNull { it.width * it.height } ?: Size(1920, 1080)
-        Log.d(TAG, "Selected JPEG size: ${bestJpegSize.width}x${bestJpegSize.height}")
+        val mp = (bestJpegSize.width * bestJpegSize.height) / 1_000_000
+        val mpLabel = "${mp}MP"
+        _uiState.value = _uiState.value.copy(sensorMegapixels = mpLabel)
+        Log.d(TAG, "Selected JPEG size: ${bestJpegSize.width}x${bestJpegSize.height} ($mpLabel)")
 
         jpegImageReader = ImageReader.newInstance(bestJpegSize.width, bestJpegSize.height, ImageFormat.JPEG, 2).apply {
             setOnImageAvailableListener({ reader ->
@@ -331,6 +333,14 @@ class Camera2Controller(
             2 -> builder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_SINGLE)
             3 -> builder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH)
             else -> builder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF)
+        }
+
+        // 5. Hardware Optical Image Stabilization (OIS) support (e.g. Galaxy A23 5G SM-A236E)
+        cameraCharacteristics?.let { chars ->
+            val oisModes = chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION)
+            if (oisModes?.contains(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON) == true) {
+                builder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON)
+            }
         }
     }
 
