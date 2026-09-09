@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.sondeptrai.procam.core.camera.ShootingMode
+import com.sondeptrai.procam.core.camera.*
 import com.sondeptrai.procam.core.gl.CameraGlView
 import com.sondeptrai.procam.ui.theme.DslrBlack
 import com.sondeptrai.procam.ui.theme.ProCamRed
