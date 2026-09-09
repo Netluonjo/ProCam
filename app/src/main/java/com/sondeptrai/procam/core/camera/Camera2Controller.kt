@@ -342,6 +342,19 @@ class Camera2Controller(
                 builder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON)
             }
         }
+
+        // 6. Zoom Control (CONTROL_ZOOM_RATIO on Android 11+ or SCALER_CROP_REGION fallback)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            builder.set(CaptureRequest.CONTROL_ZOOM_RATIO, state.currentZoomRatio)
+        } else {
+            cameraCharacteristics?.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)?.let { activeArray ->
+                val cropW = (activeArray.width() / state.currentZoomRatio).toInt()
+                val cropH = (activeArray.height() / state.currentZoomRatio).toInt()
+                val left = (activeArray.width() - cropW) / 2
+                val top = (activeArray.height() - cropH) / 2
+                builder.set(CaptureRequest.SCALER_CROP_REGION, android.graphics.Rect(left, top, left + cropW, top + cropH))
+            }
+        }
     }
 
     /**
@@ -401,6 +414,16 @@ class Camera2Controller(
 
     fun setEv(evIndex: Int) {
         _uiState.value = _uiState.value.copy(currentEvIndex = evIndex)
+        previewRequestBuilder?.let {
+            applyParametersToBuilder(it)
+            sendRepeatingRequest()
+        }
+    }
+
+    fun setZoomRatio(zoom: Float) {
+        val range = _uiState.value.hardwareInfo.zoomRatioRange
+        val clamped = zoom.coerceIn(range.lower, range.upper)
+        _uiState.value = _uiState.value.copy(currentZoomRatio = clamped)
         previewRequestBuilder?.let {
             applyParametersToBuilder(it)
             sendRepeatingRequest()

@@ -45,11 +45,13 @@ fun ShutterControlSection(
     isRecording: Boolean,
     isFrontCamera: Boolean,
     timerSeconds: Int,
+    currentZoomRatio: Float,
     isDrawerExpanded: Boolean,
     lastCapturedUri: Uri?,
     onShutterClick: () -> Unit,
     onGalleryClick: () -> Unit,
     onFlipCameraClick: () -> Unit,
+    onZoomCycle: () -> Unit,
     onModeDrawerToggle: () -> Unit,
     onTimerCycle: () -> Unit,
     modifier: Modifier = Modifier
@@ -195,19 +197,33 @@ fun ShutterControlSection(
             }
         }
 
-        // 5. Lens / Camera Switcher Badge Button [1x / Front]
+        // 5. Lens / Zoom Switcher Badge Button [1x / 2x / 3x / Front]
+        val zoomLabel = if (isFrontCamera) {
+            "Front"
+        } else if (currentZoomRatio % 1.0f == 0f) {
+            "${currentZoomRatio.toInt()}x"
+        } else {
+            String.format("%.1fx", currentZoomRatio)
+        }
+
         Box(
             modifier = Modifier
                 .size(46.dp)
                 .clip(CircleShape)
                 .background(Color(0xFF1C1C1E))
                 .border(1.dp, Color(0xFF38383A), CircleShape)
-                .clickable { onFlipCameraClick() },
+                .clickable {
+                    if (isFrontCamera) {
+                        onFlipCameraClick()
+                    } else {
+                        onZoomCycle()
+                    }
+                },
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = if (isFrontCamera) "Front" else "1x",
-                color = Color.White,
+                text = zoomLabel,
+                color = if (!isFrontCamera && currentZoomRatio > 1.0f) ProCamAmber else Color.White,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace

@@ -62,7 +62,9 @@ data class CameraHardwareInfo(
     val minFocusDistance: Float = 10f, // diopters (1/d in meters, e.g. 10 means 10cm min focus)
     val aeCompensationRange: Range<Int> = Range(-12, 12),
     val aeCompensationStep: Rational = Rational(1, 3),
-    val sensorOrientation: Int = 90
+    val sensorOrientation: Int = 90,
+    val maxDigitalZoom: Float = 10f,
+    val zoomRatioRange: Range<Float> = Range(1f, 10f)
 ) {
     val isFullOrLevel3: Boolean
         get() = hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL ||
@@ -105,6 +107,7 @@ data class CameraUiState(
     val currentKelvin: Int = 5500, // 2000K - 10000K
     
     val currentEvIndex: Int = 0,
+    val currentZoomRatio: Float = 1.0f,
     
     // Capture format
     val isRawEnabled: Boolean = false,

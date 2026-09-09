@@ -84,6 +84,10 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
         cameraController.setEv(evIndex)
     }
 
+    fun onZoomChanged(zoom: Float) {
+        cameraController.setZoomRatio(zoom)
+    }
+
     fun onParamSelected(param: ManualParameter) {
         cameraController.setActiveManualParam(param)
     }

@@ -1,6 +1,7 @@
 package com.sondeptrai.procam.ui.camera
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Scaffold
@@ -10,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -74,6 +76,15 @@ fun CameraScreen(
                     .fillMaxWidth()
                     .weight(1f)
                     .background(Color.Black)
+                    .pointerInput(uiState.hardwareInfo.zoomRatioRange) {
+                        detectTransformGestures { _, _, zoom, _ ->
+                            val newZoom = (uiState.currentZoomRatio * zoom).coerceIn(
+                                uiState.hardwareInfo.zoomRatioRange.lower,
+                                uiState.hardwareInfo.zoomRatioRange.upper
+                            )
+                            viewModel.onZoomChanged(newZoom)
+                        }
+                    }
             ) {
                 // Real-time OpenGL ES Preview with Shader filters & Mirroring
                 AndroidView(
@@ -148,6 +159,17 @@ fun CameraScreen(
                     )
                 }
 
+                // ProCam Quick Zoom Preset Widget (1x, 2x, 3x, 5x)
+                ZoomControlWidget(
+                    currentZoom = uiState.currentZoomRatio,
+                    maxZoom = uiState.hardwareInfo.zoomRatioRange.upper,
+                    isFrontCamera = uiState.isFrontCamera,
+                    onZoomSelected = { targetZoom -> viewModel.onZoomChanged(targetZoom) },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 12.dp)
+                )
+
                 // Shutter Flash White Feedback
                 if (uiState.isShutterFlashing) {
                     Box(
@@ -192,11 +214,23 @@ fun CameraScreen(
                 isRecording = uiState.isRecordingVideo,
                 isFrontCamera = uiState.isFrontCamera,
                 timerSeconds = uiState.timerSeconds,
+                currentZoomRatio = uiState.currentZoomRatio,
                 isDrawerExpanded = uiState.isModeDrawerExpanded,
                 lastCapturedUri = uiState.lastCapturedUri,
                 onShutterClick = { viewModel.onShutterPressed() },
                 onGalleryClick = { viewModel.onOpenGallery(context) },
                 onFlipCameraClick = { viewModel.onSwitchCamera() },
+                onZoomCycle = {
+                    val current = uiState.currentZoomRatio
+                    val max = uiState.hardwareInfo.zoomRatioRange.upper
+                    val next = when {
+                        current < 1.9f -> 2.0f
+                        current < 2.9f -> 3.0f
+                        current < 4.9f && max >= 5.0f -> 5.0f
+                        else -> 1.0f
+                    }
+                    viewModel.onZoomChanged(next)
+                },
                 onModeDrawerToggle = { viewModel.onModeDrawerToggle() },
                 onTimerCycle = { viewModel.onTimerCycle() }
             )

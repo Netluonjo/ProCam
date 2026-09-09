@@ -52,11 +52,19 @@ object CameraHardwareCapabilities {
 
         val sensorOrientation = chars.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 90
 
+        val maxDigitalZoom = chars.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM) ?: 10f
+        val zoomRatioRange = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            chars.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE) ?: Range(1f, maxDigitalZoom)
+        } else {
+            Range(1f, maxDigitalZoom)
+        }
+
         Log.d(TAG, "Device Hardware Level: $hardwareLevel (FULL=1, LEVEL_3=3, LIMITED=0, LEGACY=2)")
         Log.d(TAG, "Manual Sensor Support: $isManualSensor, RAW Support: $isRawSupported")
         Log.d(TAG, "ISO Range: ${isoRange.lower} - ${isoRange.upper}")
         Log.d(TAG, "Shutter Range (ns): ${exposureTimeRange.lower} - ${exposureTimeRange.upper}")
         Log.d(TAG, "Min Focus Distance: $minFocusDist diopters")
+        Log.d(TAG, "Zoom Ratio Range: ${zoomRatioRange.lower}x - ${zoomRatioRange.upper}x")
 
         return CameraHardwareInfo(
             hardwareLevel = hardwareLevel,
@@ -67,7 +75,9 @@ object CameraHardwareCapabilities {
             minFocusDistance = minFocusDist,
             aeCompensationRange = aeCompensationRange,
             aeCompensationStep = aeStep,
-            sensorOrientation = sensorOrientation
+            sensorOrientation = sensorOrientation,
+            maxDigitalZoom = maxDigitalZoom,
+            zoomRatioRange = zoomRatioRange
         )
     }
 }
