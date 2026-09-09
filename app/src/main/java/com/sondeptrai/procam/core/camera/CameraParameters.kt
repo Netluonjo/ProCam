@@ -1,6 +1,7 @@
 package com.sondeptrai.procam.core.camera
 
 import android.hardware.camera2.CameraCharacteristics
+import android.net.Uri
 import android.util.Range
 import android.util.Rational
 
@@ -124,6 +125,11 @@ data class CameraUiState(
     val isRecordingVideo: Boolean = false,
     val videoRecordingSeconds: Int = 0,
     val audioDecibelLevel: Float = 0f,
+    
+    // Front Camera & Feedback
+    val isFrontCamera: Boolean = false,
+    val isShutterFlashing: Boolean = false,
+    val lastCapturedUri: Uri? = null,
     
     // Hardware info
     val hardwareInfo: CameraHardwareInfo = CameraHardwareInfo()

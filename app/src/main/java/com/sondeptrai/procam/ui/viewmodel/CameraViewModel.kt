@@ -37,20 +37,30 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun onShutterPressed() {
-        val state = uiState.value
-        when (state.selectedMode) {
-            ShootingMode.ANTI_SHAKE -> {
-                if (isSteady.value) {
-                    cameraController.captureStillPhoto()
-                }
+        cameraController.captureStillPhoto()
+    }
+
+    fun onSwitchCamera() {
+        cameraController.switchCamera()
+    }
+
+    fun onOpenGallery(context: android.content.Context) {
+        val uri = uiState.value.lastCapturedUri
+        val intent = if (uri != null) {
+            android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "image/*")
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            ShootingMode.SLOW_SHUTTER -> {
-                // Trigger frame stacking long exposure sequence
-                cameraController.captureStillPhoto()
+        } else {
+            android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                setDataAndType(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*")
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            else -> {
-                cameraController.captureStillPhoto()
-            }
+        }
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(context, "Không thể mở Thư viện", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 

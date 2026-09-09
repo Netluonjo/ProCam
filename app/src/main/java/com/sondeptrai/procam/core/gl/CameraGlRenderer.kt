@@ -51,6 +51,7 @@ class CameraGlRenderer(
 
     var isZebraEnabled = false
     var zebraThreshold = 0.95f
+    var isFrontCamera = false
 
     private var surfaceWidth = 1920
     private var surfaceHeight = 1080
@@ -140,6 +141,11 @@ class CameraGlRenderer(
 
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+
+        Matrix.setIdentityM(mvpMatrix, 0)
+        if (isFrontCamera) {
+            Matrix.scaleM(mvpMatrix, 0, -1f, 1f, 1f)
+        }
 
         GLES20.glUseProgram(programId)
 

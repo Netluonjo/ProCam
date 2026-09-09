@@ -36,6 +36,12 @@ class CameraGlView @JvmOverloads constructor(
         }
     }
 
+    fun updateFrontCamera(isFront: Boolean) {
+        queueEvent {
+            renderer.isFrontCamera = isFront
+        }
+    }
+
     fun release() {
         queueEvent {
             renderer.release()

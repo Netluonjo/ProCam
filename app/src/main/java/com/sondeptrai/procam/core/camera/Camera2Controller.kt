@@ -7,18 +7,22 @@ import android.hardware.camera2.*
 import android.hardware.camera2.params.ColorSpaceTransform
 import android.hardware.camera2.params.RggbChannelVector
 import android.media.ImageReader
+import android.media.MediaActionSound
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
 import android.util.Range
 import android.util.Size
 import android.view.Surface
+import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import kotlin.math.max
 import kotlin.math.min
@@ -33,6 +37,7 @@ class Camera2Controller(
 
     private val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     private val rawCaptureManager = RawCaptureManager(context)
+    private val mediaSound = MediaActionSound()
 
     private var backgroundThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
@@ -81,13 +86,18 @@ class Camera2Controller(
 
         val hardwareInfo = CameraHardwareCapabilities.queryCapabilities(context, currentCameraId)
         _uiState.value = _uiState.value.copy(
+            isFrontCamera = false,
             hardwareInfo = hardwareInfo,
             currentIso = hardwareInfo.isoRange.lower,
             currentExposureTimeNanos = 10_000_000L // 1/100s default
         )
 
         setupImageReaders()
+        openCameraDevice()
+    }
 
+    @SuppressLint("MissingPermission")
+    private fun openCameraDevice() {
         try {
             cameraManager.openCamera(currentCameraId, object : CameraDevice.StateCallback() {
                 override fun onOpened(camera: CameraDevice) {
@@ -109,8 +119,56 @@ class Camera2Controller(
                 }
             }, backgroundHandler)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to open camera", e)
+            Log.e(TAG, "Failed to open camera device: $currentCameraId", e)
         }
+    }
+
+    private fun closeCurrentCameraSession() {
+        try {
+            captureSession?.close()
+            captureSession = null
+            cameraDevice?.close()
+            cameraDevice = null
+            jpegImageReader?.close()
+            jpegImageReader = null
+            rawImageReader?.close()
+            rawImageReader = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing camera session", e)
+        }
+    }
+
+    fun switchCamera() {
+        val surface = previewSurface ?: return
+        val targetIsFront = !_uiState.value.isFrontCamera
+        val nextCameraId = if (targetIsFront) {
+            CameraHardwareCapabilities.getFrontCameraId(cameraManager)
+        } else {
+            CameraHardwareCapabilities.getBackCameraId(cameraManager)
+        }
+
+        if (nextCameraId == null) {
+            scope.launch(Dispatchers.Main) {
+                Toast.makeText(context, "Thiết bị không hỗ trợ camera này", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+
+        closeCurrentCameraSession()
+
+        currentCameraId = nextCameraId
+        cameraCharacteristics = cameraManager.getCameraCharacteristics(currentCameraId)
+        val hardwareInfo = CameraHardwareCapabilities.queryCapabilities(context, currentCameraId)
+
+        _uiState.value = _uiState.value.copy(
+            isFrontCamera = targetIsFront,
+            hardwareInfo = hardwareInfo,
+            currentIso = hardwareInfo.isoRange.lower,
+            currentExposureTimeNanos = 10_000_000L
+        )
+
+        setupImageReaders()
+        openCameraDevice()
     }
 
     private fun setupImageReaders() {
@@ -131,7 +189,15 @@ class Camera2Controller(
                 image.close()
 
                 scope.launch {
-                    rawCaptureManager.saveJpegImage(bytes)
+                    val uri = rawCaptureManager.saveJpegImage(bytes)
+                    withContext(Dispatchers.Main) {
+                        if (uri != null) {
+                            _uiState.value = _uiState.value.copy(lastCapturedUri = uri)
+                            Toast.makeText(context, "Đã lưu ảnh vào Thư viện!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Không thể lưu ảnh", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }, backgroundHandler)
         }
@@ -358,12 +424,46 @@ class Camera2Controller(
     }
 
     fun captureStillPhoto() {
-        val device = cameraDevice ?: return
-        val session = captureSession ?: return
+        val device = cameraDevice ?: run {
+            scope.launch(Dispatchers.Main) {
+                Toast.makeText(context, "Camera chưa sẵn sàng", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+        val session = captureSession ?: run {
+            scope.launch(Dispatchers.Main) {
+                Toast.makeText(context, "Camera session đang kết nối...", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
 
         try {
+            // 1. Play real physical shutter click sound
+            try {
+                mediaSound.play(MediaActionSound.SHUTTER_CLICK)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to play shutter sound", e)
+            }
+
+            // 2. Trigger white screen flash visual feedback
+            scope.launch {
+                _uiState.value = _uiState.value.copy(isShutterFlashing = true)
+                delay(80)
+                _uiState.value = _uiState.value.copy(isShutterFlashing = false)
+            }
+
             val captureBuilder = device.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
             applyParametersToBuilder(captureBuilder)
+
+            // 3. Set JPEG Orientation based on sensor orientation and front/back lens
+            val sensorOrientation = cameraCharacteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 90
+            val isFront = _uiState.value.isFrontCamera
+            val jpegOrientation = if (isFront) {
+                (sensorOrientation + 270) % 360
+            } else {
+                sensorOrientation
+            }
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, jpegOrientation)
 
             if (_uiState.value.isRawEnabled && rawImageReader != null) {
                 captureBuilder.addTarget(rawImageReader!!.surface)
@@ -371,7 +471,7 @@ class Camera2Controller(
                     val rawImage = reader.acquireLatestImage() ?: return@setOnImageAvailableListener
                     // Wait for result callback to save DNG
                 }, backgroundHandler)
-            } else {
+            } else if (jpegImageReader != null) {
                 captureBuilder.addTarget(jpegImageReader!!.surface)
             }
 
@@ -383,6 +483,15 @@ class Camera2Controller(
                 ) {
                     super.onCaptureCompleted(session, request, result)
                     Log.d(TAG, "Photo captured successfully")
+                }
+
+                override fun onCaptureFailed(
+                    session: CameraCaptureSession,
+                    request: CaptureRequest,
+                    failure: CaptureFailure
+                ) {
+                    super.onCaptureFailed(session, request, failure)
+                    Log.e(TAG, "Capture failed: ${failure.reason}")
                 }
             }, backgroundHandler)
         } catch (e: Exception) {

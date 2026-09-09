@@ -18,6 +18,13 @@ object CameraHardwareCapabilities {
         } ?: cameraManager.cameraIdList.firstOrNull()
     }
 
+    fun getFrontCameraId(cameraManager: CameraManager): String? {
+        return cameraManager.cameraIdList.firstOrNull { id ->
+            val characteristics = cameraManager.getCameraCharacteristics(id)
+            characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT
+        }
+    }
+
     fun queryCapabilities(context: Context, cameraId: String): CameraHardwareInfo {
         val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
         val chars = manager.getCameraCharacteristics(cameraId)

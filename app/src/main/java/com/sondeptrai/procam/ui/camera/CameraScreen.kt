@@ -31,6 +31,9 @@ fun CameraScreen(
     LaunchedEffect(uiState.isZebraEnabled, uiState.zebraThreshold) {
         glViewRef?.updateZebra(uiState.isZebraEnabled, uiState.zebraThreshold)
     }
+    LaunchedEffect(uiState.isFrontCamera) {
+        glViewRef?.updateFrontCamera(uiState.isFrontCamera)
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -95,6 +98,15 @@ fun CameraScreen(
                             .padding(12.dp)
                     )
                 }
+
+                // Shutter Flash White Feedback
+                if (uiState.isShutterFlashing) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(androidx.compose.ui.graphics.Color.White)
+                    )
+                }
             }
 
             // 3. Mechanical Slider Wheel (ISO / Shutter / Focus / WB / EV)
@@ -120,12 +132,13 @@ fun CameraScreen(
             )
 
             // 6. Tactical Shutter & Gallery Controls
+            val context = androidx.compose.ui.platform.LocalContext.current
             ShutterControlSection(
                 mode = uiState.selectedMode,
                 isRecording = uiState.isRecordingVideo,
                 onShutterClick = { viewModel.onShutterPressed() },
-                onGalleryClick = { /* Open photo gallery */ },
-                onFlipCameraClick = { /* Switch front/back camera */ }
+                onGalleryClick = { viewModel.onOpenGallery(context) },
+                onFlipCameraClick = { viewModel.onSwitchCamera() }
             )
         }
     }
