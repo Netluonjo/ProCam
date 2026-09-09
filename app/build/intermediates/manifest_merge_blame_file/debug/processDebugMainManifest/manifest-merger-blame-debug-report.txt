@@ -1,0 +1,237 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.sondeptrai.procam"
+4    android:versionCode="1"
+5    android:versionName="1.0.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+9        android:targetSdkVersion="35" />
+10
+11    <!-- Camera and Audio Permissions -->
+12    <uses-permission android:name="android.permission.CAMERA" />
+12-->D:\procam_android\app\src\main\AndroidManifest.xml:6:5-65
+12-->D:\procam_android\app\src\main\AndroidManifest.xml:6:22-62
+13    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+13-->D:\procam_android\app\src\main\AndroidManifest.xml:7:5-71
+13-->D:\procam_android\app\src\main\AndroidManifest.xml:7:22-68
+14
+15    <!-- Storage and Media Permissions -->
+16    <uses-permission
+16-->D:\procam_android\app\src\main\AndroidManifest.xml:10:5-12:38
+17        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+17-->D:\procam_android\app\src\main\AndroidManifest.xml:11:9-65
+18        android:maxSdkVersion="28" />
+18-->D:\procam_android\app\src\main\AndroidManifest.xml:12:9-35
+19    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+19-->D:\procam_android\app\src\main\AndroidManifest.xml:13:5-76
+19-->D:\procam_android\app\src\main\AndroidManifest.xml:13:22-73
+20    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+20-->D:\procam_android\app\src\main\AndroidManifest.xml:14:5-75
+20-->D:\procam_android\app\src\main\AndroidManifest.xml:14:22-72
+21
+22    <!-- Geotagging EXIF metadata (optional) -->
+23    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+23-->D:\procam_android\app\src\main\AndroidManifest.xml:17:5-79
+23-->D:\procam_android\app\src\main\AndroidManifest.xml:17:22-76
+24    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+24-->D:\procam_android\app\src\main\AndroidManifest.xml:18:5-81
+24-->D:\procam_android\app\src\main\AndroidManifest.xml:18:22-78
+25
+26    <!-- Hardware Features -->
+27    <uses-feature
+27-->D:\procam_android\app\src\main\AndroidManifest.xml:21:5-23:35
+28        android:name="android.hardware.camera"
+28-->D:\procam_android\app\src\main\AndroidManifest.xml:22:9-47
+29        android:required="true" />
+29-->D:\procam_android\app\src\main\AndroidManifest.xml:23:9-32
+30    <uses-feature
+30-->D:\procam_android\app\src\main\AndroidManifest.xml:24:5-26:36
+31        android:name="android.hardware.camera2.full"
+31-->D:\procam_android\app\src\main\AndroidManifest.xml:25:9-53
+32        android:required="false" />
+32-->D:\procam_android\app\src\main\AndroidManifest.xml:26:9-33
+33    <uses-feature
+33-->D:\procam_android\app\src\main\AndroidManifest.xml:27:5-29:36
+34        android:name="android.hardware.camera.autofocus"
+34-->D:\procam_android\app\src\main\AndroidManifest.xml:28:9-57
+35        android:required="false" />
+35-->D:\procam_android\app\src\main\AndroidManifest.xml:29:9-33
+36    <uses-feature
+36-->D:\procam_android\app\src\main\AndroidManifest.xml:30:5-32:36
+37        android:name="android.hardware.camera.manual_sensor"
+37-->D:\procam_android\app\src\main\AndroidManifest.xml:31:9-61
+38        android:required="false" />
+38-->D:\procam_android\app\src\main\AndroidManifest.xml:32:9-33
+39    <uses-feature
+39-->D:\procam_android\app\src\main\AndroidManifest.xml:33:5-35:36
+40        android:name="android.hardware.camera.manual_post_processing"
+40-->D:\procam_android\app\src\main\AndroidManifest.xml:34:9-70
+41        android:required="false" />
+41-->D:\procam_android\app\src\main\AndroidManifest.xml:35:9-33
+42    <uses-feature
+42-->D:\procam_android\app\src\main\AndroidManifest.xml:36:5-38:36
+43        android:name="android.hardware.camera.raw"
+43-->D:\procam_android\app\src\main\AndroidManifest.xml:37:9-51
+44        android:required="false" />
+44-->D:\procam_android\app\src\main\AndroidManifest.xml:38:9-33
+45    <uses-feature
+45-->D:\procam_android\app\src\main\AndroidManifest.xml:39:5-41:36
+46        android:name="android.hardware.sensor.accelerometer"
+46-->D:\procam_android\app\src\main\AndroidManifest.xml:40:9-61
+47        android:required="false" />
+47-->D:\procam_android\app\src\main\AndroidManifest.xml:41:9-33
+48    <uses-feature
+48-->D:\procam_android\app\src\main\AndroidManifest.xml:42:5-44:36
+49        android:name="android.hardware.sensor.gyroscope"
+49-->D:\procam_android\app\src\main\AndroidManifest.xml:43:9-57
+50        android:required="false" />
+50-->D:\procam_android\app\src\main\AndroidManifest.xml:44:9-33
+51    <uses-feature
+51-->D:\procam_android\app\src\main\AndroidManifest.xml:45:5-47:35
+52        android:glEsVersion="0x00030000"
+52-->D:\procam_android\app\src\main\AndroidManifest.xml:46:9-41
+53        android:required="true" />
+53-->D:\procam_android\app\src\main\AndroidManifest.xml:47:9-32
+54
+55    <permission
+55-->[androidx.core:core:1.13.1] C:\Users\asus\.gradle\caches\8.9\transforms\dd202c3ebf08c7949e3208d67dff69a2\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+56        android:name="com.sondeptrai.procam.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+56-->[androidx.core:core:1.13.1] C:\Users\asus\.gradle\caches\8.9\transforms\dd202c3ebf08c7949e3208d67dff69a2\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+57        android:protectionLevel="signature" />
+57-->[androidx.core:core:1.13.1] C:\Users\asus\.gradle\caches\8.9\transforms\dd202c3ebf08c7949e3208d67dff69a2\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+58
+59    <uses-permission android:name="com.sondeptrai.procam.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+59-->[androidx.core:core:1.13.1] C:\Users\asus\.gradle\caches\8.9\transforms\dd202c3ebf08c7949e3208d67dff69a2\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+59-->[androidx.core:core:1.13.1] C:\Users\asus\.gradle\caches\8.9\transforms\dd202c3ebf08c7949e3208d67dff69a2\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+60
+61    <application
+61-->D:\procam_android\app\src\main\AndroidManifest.xml:49:5-71:19
+62        android:name="com.sondeptrai.procam.ProCamApplication"
+62-->D:\procam_android\app\src\main\AndroidManifest.xml:50:9-42
+63        android:allowBackup="true"
+63-->D:\procam_android\app\src\main\AndroidManifest.xml:51:9-35
+64        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+64-->[androidx.core:core:1.13.1] C:\Users\asus\.gradle\caches\8.9\transforms\dd202c3ebf08c7949e3208d67dff69a2\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+65        android:dataExtractionRules="@xml/data_extraction_rules"
+65-->D:\procam_android\app\src\main\AndroidManifest.xml:52:9-65
+66        android:debuggable="true"
+67        android:extractNativeLibs="false"
+68        android:fullBackupContent="@xml/backup_rules"
+68-->D:\procam_android\app\src\main\AndroidManifest.xml:53:9-54
+69        android:icon="@mipmap/ic_launcher"
+69-->D:\procam_android\app\src\main\AndroidManifest.xml:54:9-43
+70        android:label="@string/app_name"
+70-->D:\procam_android\app\src\main\AndroidManifest.xml:55:9-41
+71        android:roundIcon="@mipmap/ic_launcher_round"
+71-->D:\procam_android\app\src\main\AndroidManifest.xml:56:9-54
+72        android:supportsRtl="true"
+72-->D:\procam_android\app\src\main\AndroidManifest.xml:57:9-35
+73        android:testOnly="true"
+74        android:theme="@style/Theme.ProCam" >
+74-->D:\procam_android\app\src\main\AndroidManifest.xml:58:9-44
+75        <activity
+75-->D:\procam_android\app\src\main\AndroidManifest.xml:60:9-70:20
+76            android:name="com.sondeptrai.procam.MainActivity"
+76-->D:\procam_android\app\src\main\AndroidManifest.xml:61:13-41
+77            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+77-->D:\procam_android\app\src\main\AndroidManifest.xml:63:13-87
+78            android:exported="true"
+78-->D:\procam_android\app\src\main\AndroidManifest.xml:62:13-36
+79            android:screenOrientation="portrait"
+79-->D:\procam_android\app\src\main\AndroidManifest.xml:64:13-49
+80            android:theme="@style/Theme.ProCam" >
+80-->D:\procam_android\app\src\main\AndroidManifest.xml:65:13-48
+81            <intent-filter>
+81-->D:\procam_android\app\src\main\AndroidManifest.xml:66:13-69:29
+82                <action android:name="android.intent.action.MAIN" />
+82-->D:\procam_android\app\src\main\AndroidManifest.xml:67:17-69
+82-->D:\procam_android\app\src\main\AndroidManifest.xml:67:25-66
+83
+84                <category android:name="android.intent.category.LAUNCHER" />
+84-->D:\procam_android\app\src\main\AndroidManifest.xml:68:17-77
+84-->D:\procam_android\app\src\main\AndroidManifest.xml:68:27-74
+85            </intent-filter>
+86        </activity>
+87
+88        <provider
+88-->[androidx.emoji2:emoji2:1.3.0] C:\Users\asus\.gradle\caches\8.9\transforms\d54f06b0c9278a0b38705a549f242421\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+89            android:name="androidx.startup.InitializationProvider"
+89-->[androidx.emoji2:emoji2:1.3.0] C:\Users\asus\.gradle\caches\8.9\transforms\d54f06b0c9278a0b38705a549f242421\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+90            android:authorities="com.sondeptrai.procam.androidx-startup"
+90-->[androidx.emoji2:emoji2:1.3.0] C:\Users\asus\.gradle\caches\8.9\transforms\d54f06b0c9278a0b38705a549f242421\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+91            android:exported="false" >
+91-->[androidx.emoji2:emoji2:1.3.0] C:\Users\asus\.gradle\caches\8.9\transforms\d54f06b0c9278a0b38705a549f242421\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+92            <meta-data
+92-->[androidx.emoji2:emoji2:1.3.0] C:\Users\asus\.gradle\caches\8.9\transforms\d54f06b0c9278a0b38705a549f242421\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+93                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+93-->[androidx.emoji2:emoji2:1.3.0] C:\Users\asus\.gradle\caches\8.9\transforms\d54f06b0c9278a0b38705a549f242421\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+94                android:value="androidx.startup" />
+94-->[androidx.emoji2:emoji2:1.3.0] C:\Users\asus\.gradle\caches\8.9\transforms\d54f06b0c9278a0b38705a549f242421\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+95            <meta-data
+95-->[androidx.lifecycle:lifecycle-process:2.8.5] C:\Users\asus\.gradle\caches\8.9\transforms\bf01ba2badfff33d87013d0bde7c5232\transformed\lifecycle-process-2.8.5\AndroidManifest.xml:29:13-31:52
+96                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+96-->[androidx.lifecycle:lifecycle-process:2.8.5] C:\Users\asus\.gradle\caches\8.9\transforms\bf01ba2badfff33d87013d0bde7c5232\transformed\lifecycle-process-2.8.5\AndroidManifest.xml:30:17-78
+97                android:value="androidx.startup" />
+97-->[androidx.lifecycle:lifecycle-process:2.8.5] C:\Users\asus\.gradle\caches\8.9\transforms\bf01ba2badfff33d87013d0bde7c5232\transformed\lifecycle-process-2.8.5\AndroidManifest.xml:31:17-49
+98            <meta-data
+98-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+99                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+99-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+100                android:value="androidx.startup" />
+100-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+101        </provider>
+102
+103        <activity
+103-->[androidx.compose.ui:ui-test-manifest:1.7.0] C:\Users\asus\.gradle\caches\8.9\transforms\8f8dade202bb85bca818b6d63be43821\transformed\ui-test-manifest-1.7.0\AndroidManifest.xml:23:9-25:39
+104            android:name="androidx.activity.ComponentActivity"
+104-->[androidx.compose.ui:ui-test-manifest:1.7.0] C:\Users\asus\.gradle\caches\8.9\transforms\8f8dade202bb85bca818b6d63be43821\transformed\ui-test-manifest-1.7.0\AndroidManifest.xml:24:13-63
+105            android:exported="true" />
+105-->[androidx.compose.ui:ui-test-manifest:1.7.0] C:\Users\asus\.gradle\caches\8.9\transforms\8f8dade202bb85bca818b6d63be43821\transformed\ui-test-manifest-1.7.0\AndroidManifest.xml:25:13-36
+106        <activity
+106-->[androidx.compose.ui:ui-tooling-android:1.7.0] C:\Users\asus\.gradle\caches\8.9\transforms\895762780010191a0480645a033ab82d\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
+107            android:name="androidx.compose.ui.tooling.PreviewActivity"
+107-->[androidx.compose.ui:ui-tooling-android:1.7.0] C:\Users\asus\.gradle\caches\8.9\transforms\895762780010191a0480645a033ab82d\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
+108            android:exported="true" />
+108-->[androidx.compose.ui:ui-tooling-android:1.7.0] C:\Users\asus\.gradle\caches\8.9\transforms\895762780010191a0480645a033ab82d\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
+109
+110        <receiver
+110-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+111            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+111-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+112            android:directBootAware="false"
+112-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+113            android:enabled="true"
+113-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+114            android:exported="true"
+114-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+115            android:permission="android.permission.DUMP" >
+115-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+116            <intent-filter>
+116-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+117                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+117-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+117-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+118            </intent-filter>
+119            <intent-filter>
+119-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+120                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+120-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+120-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+121            </intent-filter>
+122            <intent-filter>
+122-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+123                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+123-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+123-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+124            </intent-filter>
+125            <intent-filter>
+125-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+126                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+126-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+126-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\asus\.gradle\caches\8.9\transforms\f90e03fa738ec8355a4c5a711a9fae84\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+127            </intent-filter>
+128        </receiver>
+129    </application>
+130
+131</manifest>

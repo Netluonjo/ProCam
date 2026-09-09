@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="dslr_bg">#FF0F0F12</color>
+    <color name="dslr_surface">#FF1E1E24</color>
+    <color name="peaking_green">#FF00E676</color>
+    <color name="procam_amber">#FFFFB300</color>
+    <color name="white">#FFFFFFFF</color>
+    <string name="app_name">ProCam</string>
+    <string name="auto">AUTO</string>
+    <string name="camera_permission_required">ProCam cần quyền truy cập máy ảnh và microphone để hoạt động.</string>
+    <string name="ev">EV</string>
+    <string name="focus">FOCUS</string>
+    <string name="grant_permission">Cấp quyền</string>
+    <string name="iso">ISO</string>
+    <string name="jpg">JPEG</string>
+    <string name="mode_anti_shake">CHỐNG RUNG</string>
+    <string name="mode_burst">CHỤP LIÊN TỤC</string>
+    <string name="mode_manual">THỦ CÔNG</string>
+    <string name="mode_photo">ẢNH</string>
+    <string name="mode_portrait">CHÂN DUNG</string>
+    <string name="mode_slow_shutter">PHƠI SÁNG</string>
+    <string name="mode_video">VIDEO</string>
+    <string name="raw">RAW (DNG)</string>
+    <string name="shutter">SEC</string>
+    <string name="wb">WB</string>
+    <style name="Theme.ProCam" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:navigationBarColor">@color/black</item>
+        <item name="android:windowBackground">@color/black</item>
+    </style>
+</resources>
