@@ -147,6 +147,18 @@ class CameraGlRenderer(
             Matrix.scaleM(mvpMatrix, 0, -1f, 1f, 1f)
         }
 
+        // Maintain undistorted 16:9 aspect ratio geometry
+        val textureAspect = 9.0f / 16.0f
+        val viewAspect = if (surfaceHeight > 0) surfaceWidth.toFloat() / surfaceHeight.toFloat() else textureAspect
+
+        if (viewAspect > textureAspect + 0.005f) {
+            val scaleY = viewAspect / textureAspect
+            Matrix.scaleM(mvpMatrix, 0, 1.0f, scaleY, 1.0f)
+        } else if (viewAspect < textureAspect - 0.005f) {
+            val scaleX = textureAspect / viewAspect
+            Matrix.scaleM(mvpMatrix, 0, scaleX, 1.0f, 1.0f)
+        }
+
         GLES20.glUseProgram(programId)
 
         // Bind attributes

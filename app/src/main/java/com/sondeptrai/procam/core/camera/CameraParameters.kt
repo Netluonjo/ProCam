@@ -47,10 +47,13 @@ enum class GridType(val title: String) {
     CROSSHAIR("Target")
 }
 
-enum class AspectRatio(val ratio: Float, val label: String) {
-    RATIO_4_3(4f / 3f, "4:3"),
-    RATIO_16_9(16f / 9f, "16:9"),
-    RATIO_1_1(1f, "1:1")
+enum class AspectRatio(val widthRatio: Float, val heightRatio: Float, val label: String) {
+    RATIO_16_9(9f, 16f, "16:9"),
+    RATIO_4_3(3f, 4f, "4:3"),
+    RATIO_1_1(1f, 1f, "1:1");
+
+    val ratio: Float get() = heightRatio / widthRatio
+    val portraitRatio: Float get() = widthRatio / heightRatio
 }
 
 data class CameraHardwareInfo(
@@ -130,7 +133,7 @@ data class CameraUiState(
     val gridType: GridType = GridType.RULE_OF_THIRDS,
     val isHistogramEnabled: Boolean = true,
     val isTiltMeterEnabled: Boolean = true,
-    val aspectRatio: AspectRatio = AspectRatio.RATIO_4_3,
+    val aspectRatio: AspectRatio = AspectRatio.RATIO_16_9,
     
     // Slow Shutter & Anti-Shake
     val slowShutterMode: SlowShutterMode = SlowShutterMode.LIGHT_TRAILS,

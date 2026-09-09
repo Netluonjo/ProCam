@@ -176,7 +176,18 @@ class Camera2Controller(
         val map = chars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) ?: return
 
         val jpegSizes = map.getOutputSizes(ImageFormat.JPEG) ?: emptyArray()
-        val bestJpegSize = jpegSizes.maxByOrNull { it.width * it.height } ?: Size(1920, 1080)
+        val targetRatio = when (_uiState.value.aspectRatio) {
+            AspectRatio.RATIO_16_9 -> 16f / 9f
+            AspectRatio.RATIO_1_1 -> 1f
+            AspectRatio.RATIO_4_3 -> 4f / 3f
+        }
+        val matchingSizes = jpegSizes.filter { size ->
+            val r = size.width.toFloat() / size.height.toFloat()
+            kotlin.math.abs(r - targetRatio) < 0.06f
+        }
+        val bestJpegSize = matchingSizes.maxByOrNull { it.width * it.height }
+            ?: jpegSizes.maxByOrNull { it.width * it.height }
+            ?: Size(1920, 1080)
         val mp = (bestJpegSize.width * bestJpegSize.height) / 1_000_000
         val mpLabel = "${mp}MP"
         _uiState.value = _uiState.value.copy(sensorMegapixels = mpLabel)
@@ -534,11 +545,13 @@ class Camera2Controller(
 
     fun cycleAspectRatio() {
         val next = when (_uiState.value.aspectRatio) {
-            AspectRatio.RATIO_4_3 -> AspectRatio.RATIO_16_9
-            AspectRatio.RATIO_16_9 -> AspectRatio.RATIO_1_1
-            AspectRatio.RATIO_1_1 -> AspectRatio.RATIO_4_3
+            AspectRatio.RATIO_16_9 -> AspectRatio.RATIO_4_3
+            AspectRatio.RATIO_4_3 -> AspectRatio.RATIO_1_1
+            AspectRatio.RATIO_1_1 -> AspectRatio.RATIO_16_9
         }
         _uiState.value = _uiState.value.copy(aspectRatio = next)
+        setupImageReaders()
+        createCaptureSession()
     }
 
     fun setGridType(gridType: GridType) {

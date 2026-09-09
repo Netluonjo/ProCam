@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -73,42 +74,57 @@ fun CameraScreen(
                 onFlipCamera = { viewModel.onSwitchCamera() }
             )
 
-            // 2. Viewfinder Section with GL Surface and ProCam Overlays
-            Box(
+            // 2. Viewfinder Section with GL Surface and ProCam Overlays (True 16:9 / aspect ratio)
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .background(Color.Black)
-                    .pointerInput(uiState.hardwareInfo.zoomRatioRange, uiState.activeManualParam, uiState.currentIso, uiState.isAutoIso, uiState.currentEvIndex, uiState.hardwareInfo.aeCompensationRange) {
-                        detectTransformGestures { _, pan, zoom, _ ->
-                            if (zoom != 1f) {
-                                val newZoom = (uiState.currentZoomRatio * zoom).coerceIn(
-                                    uiState.hardwareInfo.zoomRatioRange.lower,
-                                    uiState.hardwareInfo.zoomRatioRange.upper
-                                )
-                                viewModel.onZoomChanged(newZoom)
-                            } else if (uiState.activeManualParam == ManualParameter.ISO && kotlin.math.abs(pan.x) > 20f) {
-                                // Halide signature swipe-to-adjust ISO gesture (horizontal swipe)
-                                val currentIndex = if (uiState.isAutoIso) 0 else {
-                                    val idx = HALIDE_ISO_VALUES.indexOfFirst { it.second == uiState.currentIso }
-                                    if (idx != -1) idx else 4
-                                }
-                                val delta = if (pan.x > 0) 1 else -1
-                                val nextIdx = (currentIndex + delta).coerceIn(0, HALIDE_ISO_VALUES.size - 1)
-                                val (_, targetIso) = HALIDE_ISO_VALUES[nextIdx]
-                                viewModel.onIsoChanged(if (targetIso == -1) 100 else targetIso, targetIso == -1)
-                            } else if (kotlin.math.abs(pan.y) > 12f) {
-                                // Halide signature vertical swipe-to-adjust EV (Exposure Value)
-                                val stepRange = uiState.hardwareInfo.aeCompensationRange
-                                val delta = if (pan.y < 0) 1 else -1 // Dragging up increases EV (+), dragging down decreases EV (-)
-                                val nextEv = (uiState.currentEvIndex + delta).coerceIn(stepRange.lower, stepRange.upper)
-                                if (nextEv != uiState.currentEvIndex) {
-                                    viewModel.onEvChanged(nextEv)
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
+                val targetRatio = uiState.aspectRatio.portraitRatio
+                val containerRatio = maxWidth / maxHeight
+
+                val (viewfinderWidth, viewfinderHeight) = if (containerRatio > targetRatio) {
+                    (maxHeight * targetRatio) to maxHeight
+                } else {
+                    maxWidth to (maxWidth / targetRatio)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(viewfinderWidth, viewfinderHeight)
+                        .clipToBounds()
+                        .pointerInput(uiState.hardwareInfo.zoomRatioRange, uiState.activeManualParam, uiState.currentIso, uiState.isAutoIso, uiState.currentEvIndex, uiState.hardwareInfo.aeCompensationRange) {
+                            detectTransformGestures { _, pan, zoom, _ ->
+                                if (zoom != 1f) {
+                                    val newZoom = (uiState.currentZoomRatio * zoom).coerceIn(
+                                        uiState.hardwareInfo.zoomRatioRange.lower,
+                                        uiState.hardwareInfo.zoomRatioRange.upper
+                                    )
+                                    viewModel.onZoomChanged(newZoom)
+                                } else if (uiState.activeManualParam == ManualParameter.ISO && kotlin.math.abs(pan.x) > 20f) {
+                                    // Halide signature swipe-to-adjust ISO gesture (horizontal swipe)
+                                    val currentIndex = if (uiState.isAutoIso) 0 else {
+                                        val idx = HALIDE_ISO_VALUES.indexOfFirst { it.second == uiState.currentIso }
+                                        if (idx != -1) idx else 4
+                                    }
+                                    val delta = if (pan.x > 0) 1 else -1
+                                    val nextIdx = (currentIndex + delta).coerceIn(0, HALIDE_ISO_VALUES.size - 1)
+                                    val (_, targetIso) = HALIDE_ISO_VALUES[nextIdx]
+                                    viewModel.onIsoChanged(if (targetIso == -1) 100 else targetIso, targetIso == -1)
+                                } else if (kotlin.math.abs(pan.y) > 12f) {
+                                    // Halide signature vertical swipe-to-adjust EV (Exposure Value)
+                                    val stepRange = uiState.hardwareInfo.aeCompensationRange
+                                    val delta = if (pan.y < 0) 1 else -1 // Dragging up increases EV (+), dragging down decreases EV (-)
+                                    val nextEv = (uiState.currentEvIndex + delta).coerceIn(stepRange.lower, stepRange.upper)
+                                    if (nextEv != uiState.currentEvIndex) {
+                                        viewModel.onEvChanged(nextEv)
+                                    }
                                 }
                             }
                         }
-                    }
-            ) {
+                ) {
                 // Real-time OpenGL ES Preview with Shader filters & Mirroring
                 AndroidView(
                     factory = { ctx ->
@@ -202,6 +218,7 @@ fun CameraScreen(
                             .background(Color.White)
                     )
                 }
+            }
             }
 
             // 3. ProCam 6-Column Parameter Strip [ AE ] [ SEC ] [ ISO ] [ AF ] [ AWB ] [ E/F ]
