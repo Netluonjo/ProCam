@@ -36,8 +36,12 @@ fun ManualParamSelectorBar(
     val secText = if (state.isAutoShutter) "AUTO" else info.formatShutterSpeed(state.currentExposureTimeNanos)
     val isoText = if (state.isAutoIso) "AUTO" else "${state.currentIso}"
     val afText = if (state.isAutoFocus) "AUTO" else {
-        val distMeters = if (state.currentFocusDistance > 0f) 1f / state.currentFocusDistance else 99f
-        String.format("%.2f", distMeters)
+        if (state.currentFocusDistance <= 0.1f) "∞"
+        else if (state.currentFocusDistance >= 8.0f) "MACRO"
+        else {
+            val distMeters = 1f / state.currentFocusDistance
+            String.format(java.util.Locale.US, "%.1fm", distMeters)
+        }
     }
     val awbText = if (state.isAutoWb) "AUTO" else "${state.currentKelvin}K"
     val lockText = when {

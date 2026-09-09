@@ -9,6 +9,8 @@ import com.sondeptrai.procam.core.computational.AntiShakeDetector
 import com.sondeptrai.procam.core.gl.HistogramData
 import com.sondeptrai.procam.core.sensor.LevelOrientation
 import com.sondeptrai.procam.core.sensor.OrientationLevelSensor
+import androidx.compose.ui.geometry.Offset
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +28,21 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _histogramData = MutableStateFlow(HistogramData())
     val histogramData: StateFlow<HistogramData> = _histogramData.asStateFlow()
+
+    private val _focusReticlePosition = MutableStateFlow<Offset?>(null)
+    val focusReticlePosition: StateFlow<Offset?> = _focusReticlePosition.asStateFlow()
+
+    fun onTapToFocus(normX: Float, normY: Float, screenX: Float, screenY: Float) {
+        val clickPos = Offset(screenX, screenY)
+        _focusReticlePosition.value = clickPos
+        cameraController.tapToFocus(normX, normY)
+        viewModelScope.launch {
+            delay(2800)
+            if (_focusReticlePosition.value == clickPos) {
+                _focusReticlePosition.value = null
+            }
+        }
+    }
 
     init {
         antiShakeDetector.start()

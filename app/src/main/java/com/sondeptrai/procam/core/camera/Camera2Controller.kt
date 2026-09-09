@@ -3,8 +3,10 @@ package com.sondeptrai.procam.core.camera
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.ImageFormat
+import android.graphics.Rect
 import android.hardware.camera2.*
 import android.hardware.camera2.params.ColorSpaceTransform
+import android.hardware.camera2.params.MeteringRectangle
 import android.hardware.camera2.params.RggbChannelVector
 import android.media.ImageReader
 import android.media.MediaActionSound
@@ -408,10 +410,107 @@ class Camera2Controller(
     }
 
     fun setManualFocus(distance: Float, isAuto: Boolean = false) {
-        _uiState.value = _uiState.value.copy(currentFocusDistance = distance, isAutoFocus = isAuto)
-        previewRequestBuilder?.let {
-            applyParametersToBuilder(it)
-            sendRepeatingRequest()
+        val info = _uiState.value.hardwareInfo
+        val clampedDist = min(max(distance, 0f), info.minFocusDistance)
+        _uiState.value = _uiState.value.copy(currentFocusDistance = clampedDist, isAutoFocus = isAuto)
+
+        if (isAuto) {
+            resetToContinuousAutoFocus()
+            return
+        }
+
+        previewRequestBuilder?.let { builder ->
+            try {
+                // Cancel AF trigger to unlock lens motor for manual position
+                builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL)
+                captureSession?.capture(builder.build(), null, backgroundHandler)
+
+                builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF)
+                builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE)
+                builder.set(CaptureRequest.LENS_FOCUS_DISTANCE, clampedDist)
+                captureSession?.setRepeatingRequest(builder.build(), null, backgroundHandler)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting manual focus distance: $clampedDist", e)
+            }
+        }
+    }
+
+    fun tapToFocus(normalizedX: Float, normalizedY: Float) {
+        val session = captureSession ?: return
+        val builder = previewRequestBuilder ?: return
+        val chars = cameraCharacteristics ?: return
+
+        try {
+            val activeArray = chars.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
+                ?: Rect(0, 0, 4000, 3000)
+            val sensorOrientation = chars.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 90
+
+            // In portrait, sensor orientation maps normalized screen to sensor coordinates
+            val sensorX: Int
+            val sensorY: Int
+            if (sensorOrientation == 90) {
+                sensorX = (normalizedY * activeArray.width()).toInt().coerceIn(0, activeArray.width())
+                sensorY = ((1f - normalizedX) * activeArray.height()).toInt().coerceIn(0, activeArray.height())
+            } else {
+                sensorX = (normalizedX * activeArray.width()).toInt().coerceIn(0, activeArray.width())
+                sensorY = (normalizedY * activeArray.height()).toInt().coerceIn(0, activeArray.height())
+            }
+
+            val boxRadius = 160
+            val focusRect = Rect(
+                (sensorX - boxRadius).coerceAtLeast(activeArray.left),
+                (sensorY - boxRadius).coerceAtLeast(activeArray.top),
+                (sensorX + boxRadius).coerceAtMost(activeArray.right),
+                (sensorY + boxRadius).coerceAtMost(activeArray.bottom)
+            )
+            val meteringRect = MeteringRectangle(focusRect, MeteringRectangle.METERING_WEIGHT_MAX)
+
+            // Cancel any previous AF trigger
+            builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL)
+            session.capture(builder.build(), null, backgroundHandler)
+
+            // Set AF/AE metering areas
+            val maxAf = chars.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF) ?: 0
+            if (maxAf > 0) {
+                builder.set(CaptureRequest.CONTROL_AF_REGIONS, arrayOf(meteringRect))
+            }
+            val maxAe = chars.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AE) ?: 0
+            if (maxAe > 0) {
+                builder.set(CaptureRequest.CONTROL_AE_REGIONS, arrayOf(meteringRect))
+            }
+
+            // Fire Auto Focus trigger on tapped point
+            builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
+            builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START)
+            session.capture(builder.build(), null, backgroundHandler)
+
+            // Resume repeating request with AF mode AUTO
+            builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE)
+            session.setRepeatingRequest(builder.build(), null, backgroundHandler)
+
+            _uiState.value = _uiState.value.copy(isAutoFocus = true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error executing tapToFocus", e)
+        }
+    }
+
+    fun resetToContinuousAutoFocus() {
+        val session = captureSession ?: return
+        val builder = previewRequestBuilder ?: return
+
+        try {
+            builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL)
+            builder.set(CaptureRequest.CONTROL_AF_REGIONS, null)
+            builder.set(CaptureRequest.CONTROL_AE_REGIONS, null)
+            session.capture(builder.build(), null, backgroundHandler)
+
+            builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+            builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE)
+            session.setRepeatingRequest(builder.build(), null, backgroundHandler)
+
+            _uiState.value = _uiState.value.copy(isAutoFocus = true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in resetToContinuousAutoFocus", e)
         }
     }
 

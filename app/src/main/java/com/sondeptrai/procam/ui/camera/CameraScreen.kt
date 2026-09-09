@@ -37,6 +37,7 @@ fun CameraScreen(
     val levelState by viewModel.levelState.collectAsState()
     val isSteady by viewModel.isSteady.collectAsState()
     val histogramData by viewModel.histogramData.collectAsState()
+    val focusReticlePosition by viewModel.focusReticlePosition.collectAsState()
     val context = LocalContext.current
 
     var glViewRef by remember { mutableStateOf<CameraGlView?>(null) }
@@ -138,10 +139,19 @@ fun CameraScreen(
                 )
 
 
-                // Grid & Focus Target Overlay
+                val density = androidx.compose.ui.platform.LocalDensity.current
+                val viewWidthPx = with(density) { viewfinderWidth.toPx() }
+                val viewHeightPx = with(density) { viewfinderHeight.toPx() }
+
+                // Grid & Focus Target Overlay with Tap-to-Focus
                 ViewfinderOverlay(
                     gridType = uiState.gridType,
-                    onFocusPointSelected = { /* Tap-to-focus point */ }
+                    focusReticlePoint = focusReticlePosition,
+                    onFocusPointSelected = { offset ->
+                        val normX = (offset.x / viewWidthPx).coerceIn(0f, 1f)
+                        val normY = (offset.y / viewHeightPx).coerceIn(0f, 1f)
+                        viewModel.onTapToFocus(normX, normY, offset.x, offset.y)
+                    }
                 )
 
                 // Tiltmeter / Artificial Horizon Level (Center of Viewfinder)
@@ -234,6 +244,11 @@ fun CameraScreen(
                     onIsoChanged = { iso, isAuto -> viewModel.onIsoChanged(iso, isAuto) },
                     onEvChanged = { ev -> viewModel.onEvChanged(ev) },
                     initialModeIsEv = (uiState.activeManualParam == ManualParameter.ISO)
+                )
+            } else if (uiState.activeManualParam == ManualParameter.FOCUS) {
+                HalideFocusDial(
+                    state = uiState,
+                    onFocusChanged = { dist, isAuto -> viewModel.onFocusChanged(dist, isAuto) }
                 )
             } else {
                 ProCamRulerDial(

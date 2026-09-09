@@ -19,16 +19,25 @@ import com.sondeptrai.procam.ui.theme.ProCamAmber
 fun ViewfinderOverlay(
     gridType: GridType,
     onFocusPointSelected: (Offset) -> Unit,
+    focusReticlePoint: Offset? = null,
     modifier: Modifier = Modifier
 ) {
-    var tapPosition by remember { mutableStateOf<Offset?>(null) }
+    var localTapPosition by remember { mutableStateOf<Offset?>(null) }
+    val activePoint = focusReticlePoint ?: localTapPosition
+
+    LaunchedEffect(localTapPosition) {
+        if (localTapPosition != null) {
+            kotlinx.coroutines.delay(2500)
+            localTapPosition = null
+        }
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures { offset ->
-                    tapPosition = offset
+                    localTapPosition = offset
                     onFocusPointSelected(offset)
                 }
             }
@@ -84,7 +93,7 @@ fun ViewfinderOverlay(
             }
 
             // Draw interactive focus reticle ring when tapped
-            tapPosition?.let { pos ->
+            activePoint?.let { pos ->
                 val reticleColor = ProCamAmber
                 val ringRadius = 50f
                 val cornerLength = 15f

@@ -42,7 +42,16 @@ object CameraHardwareCapabilities {
         val exposureTimeRange = chars.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE)
             ?: Range(100_000L, 1_000_000_000L) // 0.1ms to 1s fallback
 
-        val minFocusDist = chars.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE) ?: 10f
+        val rawMinFocus = chars.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE)
+        val afModes = chars.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES) ?: intArrayOf()
+        val hasAutofocus = afModes.any { it != CameraCharacteristics.CONTROL_AF_MODE_OFF }
+        val minFocusDist = if (rawMinFocus != null && rawMinFocus > 0.0f) {
+            rawMinFocus
+        } else if (hasAutofocus) {
+            10.0f // 10 diopters = 10cm macro distance
+        } else {
+            0.0f // Fixed focus
+        }
 
         val aeCompensationRange = chars.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE)
             ?: Range(-12, 12)
