@@ -76,13 +76,25 @@ fun CameraScreen(
                     .fillMaxWidth()
                     .weight(1f)
                     .background(Color.Black)
-                    .pointerInput(uiState.hardwareInfo.zoomRatioRange) {
-                        detectTransformGestures { _, _, zoom, _ ->
-                            val newZoom = (uiState.currentZoomRatio * zoom).coerceIn(
-                                uiState.hardwareInfo.zoomRatioRange.lower,
-                                uiState.hardwareInfo.zoomRatioRange.upper
-                            )
-                            viewModel.onZoomChanged(newZoom)
+                    .pointerInput(uiState.hardwareInfo.zoomRatioRange, uiState.activeManualParam, uiState.currentIso, uiState.isAutoIso) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            if (zoom != 1f) {
+                                val newZoom = (uiState.currentZoomRatio * zoom).coerceIn(
+                                    uiState.hardwareInfo.zoomRatioRange.lower,
+                                    uiState.hardwareInfo.zoomRatioRange.upper
+                                )
+                                viewModel.onZoomChanged(newZoom)
+                            } else if (uiState.activeManualParam == ManualParameter.ISO && kotlin.math.abs(pan.x) > 20f) {
+                                // Halide signature swipe-to-adjust ISO gesture
+                                val currentIndex = if (uiState.isAutoIso) 0 else {
+                                    val idx = HALIDE_ISO_VALUES.indexOfFirst { it.second == uiState.currentIso }
+                                    if (idx != -1) idx else 4
+                                }
+                                val delta = if (pan.x > 0) 1 else -1
+                                val nextIdx = (currentIndex + delta).coerceIn(0, HALIDE_ISO_VALUES.size - 1)
+                                val (_, targetIso) = HALIDE_ISO_VALUES[nextIdx]
+                                viewModel.onIsoChanged(if (targetIso == -1) 100 else targetIso, targetIso == -1)
+                            }
                         }
                     }
             ) {
@@ -97,6 +109,37 @@ fun CameraScreen(
                     },
                     modifier = Modifier.fillMaxSize()
                 )
+
+                // Halide Floating ISO Status Badge (when ISO is active)
+                if (uiState.activeManualParam == ManualParameter.ISO) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 10.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xCC0C0C0E))
+                            .border(1.dp, HalideGold.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "HALIDE ISO  ",
+                                color = Color(0xFF8E8E93),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = if (uiState.isAutoIso) "AUTO (${uiState.currentIso})" else "${uiState.currentIso}",
+                                color = if (uiState.isAutoIso) Color(0xFF34C759) else HalideGold,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+                }
 
                 // Grid & Focus Target Overlay
                 ViewfinderOverlay(
@@ -186,17 +229,24 @@ fun CameraScreen(
                 onParamSelected = { param -> viewModel.onParamSelected(param) }
             )
 
-            // 4. ProCam Mechanical Graduated Ruler Dial with Fixed Red Center Needle
-            ProCamRulerDial(
-                state = uiState,
-                onIsoChanged = { iso, isAuto -> viewModel.onIsoChanged(iso, isAuto) },
-                onShutterChanged = { nanos, isAuto -> viewModel.onShutterChanged(nanos, isAuto) },
-                onFocusChanged = { dist, isAuto -> viewModel.onFocusChanged(dist, isAuto) },
-                onKelvinChanged = { k, isAuto -> viewModel.onKelvinChanged(k, isAuto) },
-                onEvChanged = { ev -> viewModel.onEvChanged(ev) },
-                onToggleAeAfLock = { viewModel.onAeAfLockToggle() },
-                onToggleWbLock = { viewModel.onWbLockToggle() }
-            )
+            // 4. Manual Control Dial: Halide 3D Rotary Drum Dial for ISO, or ProCam Ruler for other parameters
+            if (uiState.activeManualParam == ManualParameter.ISO) {
+                HalideIsoDial(
+                    state = uiState,
+                    onIsoChanged = { iso, isAuto -> viewModel.onIsoChanged(iso, isAuto) }
+                )
+            } else {
+                ProCamRulerDial(
+                    state = uiState,
+                    onIsoChanged = { iso, isAuto -> viewModel.onIsoChanged(iso, isAuto) },
+                    onShutterChanged = { nanos, isAuto -> viewModel.onShutterChanged(nanos, isAuto) },
+                    onFocusChanged = { dist, isAuto -> viewModel.onFocusChanged(dist, isAuto) },
+                    onKelvinChanged = { k, isAuto -> viewModel.onKelvinChanged(k, isAuto) },
+                    onEvChanged = { ev -> viewModel.onEvChanged(ev) },
+                    onToggleAeAfLock = { viewModel.onAeAfLockToggle() },
+                    onToggleWbLock = { viewModel.onWbLockToggle() }
+                )
+            }
 
             // 5. Expandable Shooting Mode Selector Drawer (Photo, Video, Burst, Slow Shutter, Portrait)
             ModeSelector(
