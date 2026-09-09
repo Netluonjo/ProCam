@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
 import android.util.Range
+import android.util.Size
 import android.view.Surface
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -113,8 +114,15 @@ class Camera2Controller(
     }
 
     private fun setupImageReaders() {
-        // High-res JPEG Reader
-        jpegImageReader = ImageReader.newInstance(4000, 3000, ImageFormat.JPEG, 2).apply {
+        val chars = cameraCharacteristics ?: return
+        val map = chars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) ?: return
+
+        // 1. Find best supported JPEG size from hardware sensor
+        val jpegSizes = map.getOutputSizes(ImageFormat.JPEG) ?: emptyArray()
+        val bestJpegSize = jpegSizes.maxByOrNull { it.width * it.height } ?: Size(1920, 1080)
+        Log.d(TAG, "Selected JPEG size: ${bestJpegSize.width}x${bestJpegSize.height}")
+
+        jpegImageReader = ImageReader.newInstance(bestJpegSize.width, bestJpegSize.height, ImageFormat.JPEG, 2).apply {
             setOnImageAvailableListener({ reader ->
                 val image = reader.acquireLatestImage() ?: return@setOnImageAvailableListener
                 val buffer: ByteBuffer = image.planes[0].buffer
@@ -128,9 +136,14 @@ class Camera2Controller(
             }, backgroundHandler)
         }
 
-        // RAW_SENSOR Reader if supported
-        if (_uiState.value.hardwareInfo.isRawSupported) {
-            rawImageReader = ImageReader.newInstance(4000, 3000, ImageFormat.RAW_SENSOR, 2)
+        // 2. RAW_SENSOR Reader if supported by hardware
+        val rawSizes = map.getOutputSizes(ImageFormat.RAW_SENSOR)
+        if (_uiState.value.hardwareInfo.isRawSupported && !rawSizes.isNullOrEmpty()) {
+            val bestRawSize = rawSizes.maxByOrNull { it.width * it.height } ?: rawSizes[0]
+            Log.d(TAG, "Selected RAW size: ${bestRawSize.width}x${bestRawSize.height}")
+            rawImageReader = ImageReader.newInstance(bestRawSize.width, bestRawSize.height, ImageFormat.RAW_SENSOR, 2)
+        } else {
+            rawImageReader = null
         }
     }
 
@@ -139,13 +152,15 @@ class Camera2Controller(
         val surface = previewSurface ?: return
 
         try {
-            val targets = mutableListOf(surface, jpegImageReader!!.surface)
+            val targets = mutableListOf(surface)
+            jpegImageReader?.let { targets.add(it.surface) }
             rawImageReader?.let { targets.add(it.surface) }
 
             device.createCaptureSession(targets, object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(session: CameraCaptureSession) {
                     if (cameraDevice == null) return
                     captureSession = session
+                    Log.d(TAG, "Camera capture session configured successfully!")
 
                     previewRequestBuilder = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
                         addTarget(surface)
@@ -178,19 +193,24 @@ class Camera2Controller(
                     result: TotalCaptureResult
                 ) {
                     super.onCaptureCompleted(session, request, result)
-                    // Real-time metadata feedback from hardware sensor
+                    // Real-time metadata feedback from hardware sensor with change check
                     val actualIso = result.get(CaptureResult.SENSOR_SENSITIVITY)
                     val actualExposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME)
                     val actualFocus = result.get(CaptureResult.LENS_FOCUS_DISTANCE)
 
-                    if (_uiState.value.isAutoIso && actualIso != null) {
-                        _uiState.value = _uiState.value.copy(currentIso = actualIso)
+                    val cur = _uiState.value
+                    var updated = cur
+                    if (cur.isAutoIso && actualIso != null && cur.currentIso != actualIso) {
+                        updated = updated.copy(currentIso = actualIso)
                     }
-                    if (_uiState.value.isAutoShutter && actualExposure != null) {
-                        _uiState.value = _uiState.value.copy(currentExposureTimeNanos = actualExposure)
+                    if (cur.isAutoShutter && actualExposure != null && cur.currentExposureTimeNanos != actualExposure) {
+                        updated = updated.copy(currentExposureTimeNanos = actualExposure)
                     }
-                    if (_uiState.value.isAutoFocus && actualFocus != null) {
-                        _uiState.value = _uiState.value.copy(currentFocusDistance = actualFocus)
+                    if (cur.isAutoFocus && actualFocus != null && kotlin.math.abs(cur.currentFocusDistance - actualFocus) > 0.05f) {
+                        updated = updated.copy(currentFocusDistance = actualFocus)
+                    }
+                    if (updated !== cur) {
+                        _uiState.value = updated
                     }
                 }
             }, backgroundHandler)

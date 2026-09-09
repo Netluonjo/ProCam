@@ -116,6 +116,7 @@ class CameraGlRenderer(
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
 
         surfaceTexture = SurfaceTexture(textureId).apply {
+            setDefaultBufferSize(1920, 1080)
             setOnFrameAvailableListener(this@CameraGlRenderer)
         }
         previewSurface = Surface(surfaceTexture)
