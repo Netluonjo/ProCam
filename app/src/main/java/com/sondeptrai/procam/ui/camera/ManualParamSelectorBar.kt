@@ -28,7 +28,11 @@ fun ManualParamSelectorBar(
 ) {
     val info = state.hardwareInfo
 
-    val aeText = info.formatEv(state.currentEvIndex)
+    val aeText = if (state.currentEvValue != 0f) {
+        if (state.currentEvValue > 0f) String.format("+%.1f", state.currentEvValue) else String.format("%.1f", state.currentEvValue)
+    } else {
+        info.formatEv(state.currentEvIndex)
+    }
     val secText = if (state.isAutoShutter) "AUTO" else info.formatShutterSpeed(state.currentExposureTimeNanos)
     val isoText = if (state.isAutoIso) "AUTO" else "${state.currentIso}"
     val afText = if (state.isAutoFocus) "AUTO" else {

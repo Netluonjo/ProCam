@@ -82,6 +82,14 @@ data class CameraHardwareInfo(
         }
     }
 
+    fun formatEv(evValue: Float): String {
+        return when {
+            evValue > 0f -> String.format("+%.1f", evValue)
+            evValue < 0f -> String.format("%.1f", evValue)
+            else -> "+0.0"
+        }
+    }
+
     fun formatEv(stepIndex: Int): String {
         val evValue = stepIndex * aeCompensationStep.toFloat()
         return if (evValue > 0) String.format("+%.1f", evValue) else String.format("%.1f", evValue)
@@ -106,6 +114,7 @@ data class CameraUiState(
     val isAutoWb: Boolean = true,
     val currentKelvin: Int = 5500, // 2000K - 10000K
     
+    val currentEvValue: Float = 0.0f,
     val currentEvIndex: Int = 0,
     val currentZoomRatio: Float = 1.0f,
     

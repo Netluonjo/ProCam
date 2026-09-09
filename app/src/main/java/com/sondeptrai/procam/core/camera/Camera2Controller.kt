@@ -415,8 +415,28 @@ class Camera2Controller(
     fun setEv(evIndex: Int) {
         val range = _uiState.value.hardwareInfo.aeCompensationRange
         val clamped = evIndex.coerceIn(range.lower, range.upper)
+        val step = _uiState.value.hardwareInfo.aeCompensationStep.toFloat().coerceAtLeast(0.1f)
         _uiState.value = _uiState.value.copy(
             currentEvIndex = clamped,
+            currentEvValue = clamped * step,
+            isAutoIso = true,
+            isAutoShutter = true
+        )
+        previewRequestBuilder?.let {
+            applyParametersToBuilder(it)
+            sendRepeatingRequest()
+        }
+    }
+
+    fun setEvValue(evValue: Float) {
+        val step = _uiState.value.hardwareInfo.aeCompensationStep.toFloat().coerceAtLeast(0.1f)
+        val range = _uiState.value.hardwareInfo.aeCompensationRange
+        val rawIndex = Math.round(evValue / step).toInt()
+        val clampedIndex = rawIndex.coerceIn(range.lower, range.upper)
+
+        _uiState.value = _uiState.value.copy(
+            currentEvValue = evValue,
+            currentEvIndex = clampedIndex,
             isAutoIso = true,
             isAutoShutter = true
         )
