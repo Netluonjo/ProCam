@@ -6,12 +6,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Storage and Media Permissions -->
+    <!-- Storage Permissions (Legacy Android <= 9 only; Android 10+ uses Scoped Storage via MediaStore) -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 
     <!-- Geotagging EXIF metadata (optional) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
